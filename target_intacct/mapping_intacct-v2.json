@@ -1,0 +1,48 @@
+{
+    "ignore":[
+        "null"
+    ],
+    "purchase_invoices":{
+      "invoiceNumber": "id",
+      "lineItems": [
+          {
+              "productId": "ITEMID",
+              "productName": "ITEMNAME",
+              "productSku": null,
+              "description": "ENTRYDESCRIPTION",
+              "quantity": null,
+              "unitPrice": null,
+              "totalPrice": "TRX_AMOUNT",
+              "discountAmount": null,
+              "taxAmount": null,
+              "taxCode": null,
+              "accountName": "ACCOUNTNAME"
+          }
+      ],
+      "supplierNumber": "VENDORID",
+      "supplierName": "VENDORNAME",
+      "currency": "BASECURR",
+      "issueDate": "WHENPOSTED",
+      "dueDate": "WHENDUE",
+      "paidDate": "RECPAYMENTDATE",
+      "address": {
+          "id": null,
+          "name": "LOCATIONNAME",
+          "line1": null,
+          "line2": null,
+          "line3": null,
+          "city": null,
+          "state": null,
+          "postalCode": null,
+          "country": null
+      },
+      "subTotal": null,
+      "totalDiscount": null,
+      "totalTaxAmount": null,
+      "totalAmount": null,
+      "amountDue": null,
+      "status": null,
+      "createdAt": "WHENCREATED",
+      "updatedAt": null
+  }
+}
