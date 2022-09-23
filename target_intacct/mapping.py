@@ -45,7 +45,7 @@ class UnifiedMapping:
                             payload_return[key] = item_[key]
                     line_items_ += [payload_return]
 
-        return {"APBILLITEM":line_items_}
+        return {"APBILLITEM": line_items_}
 
     def map_custom_fields(self, payload, fields):
         # Populate custom fields.
