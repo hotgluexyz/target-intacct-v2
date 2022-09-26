@@ -54,9 +54,9 @@ class intacctSink(RecordSink):
         )
         self.locations = self.dictify(locations, "NAME", "LOCATIONID")
 
-        # # Lookup for accounts
-        # accounts = self.client.get_entity(object_type='general_ledger_accounts',fields=["RECORDNO", "ACCOUNTNO", "TITLE"])
-        # self.accounts = self.dictify(accounts,"TITLE","ACCOUNTNO")
+        # Lookup for accounts
+        accounts = self.client.get_entity(object_type='general_ledger_accounts',fields=["RECORDNO", "ACCOUNTNO", "TITLE"])
+        self.accounts = self.dictify(accounts,"TITLE","ACCOUNTNO")
 
         # Lookup for items
         items = self.client.get_entity(object_type="item", fields=["ITEMID", "NAME"])
@@ -86,9 +86,11 @@ class intacctSink(RecordSink):
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
 
             # TODO For now the account number is set by hand.
-            item["ACCOUNTNO"] = "6220"
-            # if payload.get("ACCOUNTNAME"):
-            #     item["ACCOUNTNO"] = '9001'
+            # item["ACCOUNTNO"] = "6220"
+            if item.get("ACCOUNTNAME") and self.accounts.get(item['ACCOUNTNAME']):
+                item["ACCOUNTNO"] = self.accounts.get(item['ACCOUNTNAME'])
+            else:
+                raise Exception(f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item")
 
             if payload.get("ITEMNAME") and self.items.get(payload.get("ITEMNAME")):
                 item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
