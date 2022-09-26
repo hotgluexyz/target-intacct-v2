@@ -36,4 +36,4 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 # CLI declaration
-target-intacct = 'target_intacct.target:Targetintacct.cli'
+target-intacct-v2 = 'target_intacct.target:Targetintacct.cli'
