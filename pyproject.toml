@@ -31,9 +31,9 @@ multi_line_output = 3 # Vertical Hanging Indent
 src_paths = "target_intacct"
 
 [build-system]
-requires = ["poetry-core>=1.0.8"]
+requires = ["poetry-core==1.0.8"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
 # CLI declaration
-target-intacct = 'target_intacct.target:Targetintacct.cli'
+target-intacct-v2 = 'target_intacct.target:Targetintacct.cli'
