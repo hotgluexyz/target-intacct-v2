@@ -3,7 +3,7 @@
         "null"
     ],
     "purchase_invoices":{
-      "invoiceNumber": "id",
+      "invoiceNumber": "RECORDID",
       "lineItems": [
           {
               "productId": "ITEMID",
