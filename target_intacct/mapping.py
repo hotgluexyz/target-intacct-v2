@@ -61,7 +61,7 @@ class UnifiedMapping:
         payload_return = {}
         lookup_keys = mapping.keys()
         for lookup_key in lookup_keys:
-            if lookup_key == "address" and target == "intacct-v2":
+            if lookup_key == "address" or lookup_key == "addresses" and target == "intacct-v2":
                 payload = self.map_address(
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )

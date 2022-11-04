@@ -44,5 +44,20 @@
       "status": null,
       "createdAt": "WHENCREATED",
       "updatedAt": null
+  },
+  "account_payable_vendors": {
+    "vendorNumber":"VENDORID",
+    "vendorName":"NAME",
+    "addresses":{
+            "line1":"ADDRESS1",
+            "city":"CITY",
+            "state":"STATE",
+            "country":"COUNTRY",
+            "postalCode":"ZIP"
+        },
+    "phones":{
+            "number":"PHONE1",
+            "type":null
+        }
   }
 }
