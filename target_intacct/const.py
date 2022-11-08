@@ -20,6 +20,7 @@ KEY_PROPERTIES = {
 INTACCT_OBJECTS = {
     "accounts_payable_bills": "APBILL",
     "accounts_payable_vendors": "VENDOR",
+    "accounts_payable_payments": "APPYMT",
     "general_ledger_accounts": "GLACCOUNT",
     "general_ledger_details": "GLDETAIL",
     "general_ledger_journal_entries": "GLBATCH",
@@ -30,6 +31,7 @@ INTACCT_OBJECTS = {
     "locations": "LOCATION",
     "departments": "DEPARTMENT",
     "item": "ITEM",
+    "payment_provider_bank_accounts": "PROVIDERBANKACCOUNT",
 }
 
 GET_BY_DATE_FIELD = "WHENMODIFIED"

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "target-intacct"
-version = "0.0.1"
+version = "0.0.2"
 description = "`target-intacct` is a Singer target for intacct, built with the Meltano SDK for Singer Targets."
 authors = ["arthur hotglue"]
 keywords = [
