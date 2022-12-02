@@ -14,6 +14,7 @@ KEY_PROPERTIES = {
     "general_ledger_journal_entries": ["RECORDNO"],
     "general_ledger_journal_entry_lines": ["RECORDNO"],
     "projects": ["RECORDNO"],
+    "classes": ["RECORDNO"],
 }
 
 # List of available objects with their internal object-reference/endpoint name.

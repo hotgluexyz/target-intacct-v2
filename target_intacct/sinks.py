@@ -47,6 +47,8 @@ class intacctSink(RecordSink):
         self.accounts = None
         self.items = None
         self.banks = None
+        self.classes = None
+        self.projects = None
 
     def get_vendors(self):
         # Lookup for vendors
@@ -56,6 +58,24 @@ class intacctSink(RecordSink):
             )
             self.vendors = self.dictify(vendors, "NAME", "VENDORID")
         return self.vendors
+    
+    def get_classes(self):
+        # Lookup for vendors
+        if self.classes is None:
+            classes = self.client.get_entity(
+                object_type="classes", fields=["CLASSID", "NAME"]
+            )
+            self.classes = self.dictify(classes, "NAME", "CLASSID")
+        return self.classes
+
+    def get_projects(self):
+        # Lookup for vendors
+        if self.projects is None:
+            projects = self.client.get_entity(
+                object_type="projects", fields=["PROJECTID", "NAME"]
+            )
+            self.projects = self.dictify(projects, "NAME", "PROJECTID")
+        return self.projects
 
     def get_locations(self):
         # Lookup for Locations
@@ -109,6 +129,16 @@ class intacctSink(RecordSink):
             if payload.get("LOCATIONNAME"):
                 self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+
+            if item.get("CLASSNAME"):
+                self.get_classes()
+                item["CLASSID"] = self.classes[item["CLASSNAME"]]
+                item.pop("CLASSNAME")
+            
+            if item.get("PROJECTNAME"):
+                self.get_projects()
+                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                item.pop("PROJECTNAME")
 
             # TODO For now the account number is set by hand.
             # item["ACCOUNTNO"] = "6220"
