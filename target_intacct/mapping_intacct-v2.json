@@ -16,7 +16,11 @@
               "discountAmount": null,
               "taxAmount": null,
               "taxCode": null,
-              "accountName": "ACCOUNTNAME"
+              "accountName": "ACCOUNTNAME",
+              "classId": "CLASSID",
+              "className": "CLASSNAME",
+              "projectId": "PROJECTID",
+              "projectName": "PROJECTNAME"
           }
       ],
       "supplierNumber": "VENDORID",
