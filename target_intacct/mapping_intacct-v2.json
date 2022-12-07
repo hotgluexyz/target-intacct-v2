@@ -29,6 +29,7 @@
       "issueDate": "WHENPOSTED",
       "dueDate": "WHENDUE",
       "paidDate": "RECPAYMENTDATE",
+      "description": "DESCRIPTION",
       "address": {
           "id": null,
           "name": "LOCATIONNAME",
