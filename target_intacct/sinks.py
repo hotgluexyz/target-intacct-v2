@@ -145,9 +145,9 @@ class intacctSink(RecordSink):
             self.get_accounts()
             if item.get("ACCOUNTNAME") and self.accounts.get(item["ACCOUNTNAME"]):
                 item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
-            else:
+            elif not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                    f"ERROR: ACCOUNTNO or ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
                 )
 
             self.get_items()

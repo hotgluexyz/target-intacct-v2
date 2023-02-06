@@ -16,6 +16,7 @@
               "discountAmount": null,
               "taxAmount": null,
               "taxCode": null,
+              "accountNumber": "ACCOUNTNO",
               "accountName": "ACCOUNTNAME",
               "classId": "CLASSID",
               "className": "CLASSNAME",
