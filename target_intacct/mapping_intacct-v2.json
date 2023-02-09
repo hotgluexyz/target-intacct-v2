@@ -16,6 +16,8 @@
               "discountAmount": null,
               "taxAmount": null,
               "taxCode": null,
+              "supplierNumber": "VENDORID",
+              "supplierName": "VENDORNAME",
               "departmentId": "DEPARTMENTID",
               "accountNumber": "ACCOUNTNO",
               "accountName": "ACCOUNTNAME",

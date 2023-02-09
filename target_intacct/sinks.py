@@ -140,6 +140,11 @@ class intacctSink(RecordSink):
             if payload.get("LOCATIONNAME"):
                 self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+            
+            if item.get("VENDORNAME"):
+                self.get_vendors()
+                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
+                item.pop("VENDORNAME")
 
             if item.get("CLASSNAME"):
                 self.get_classes()
