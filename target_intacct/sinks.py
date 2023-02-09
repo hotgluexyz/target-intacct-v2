@@ -49,6 +49,7 @@ class intacctSink(RecordSink):
         self.banks = None
         self.classes = None
         self.projects = None
+        self.departments = None
 
     def get_vendors(self):
         # Lookup for vendors
@@ -95,6 +96,16 @@ class intacctSink(RecordSink):
             )
             self.accounts = self.dictify(accounts, "TITLE", "ACCOUNTNO")
         return self.accounts
+
+    def get_departments(self):
+        if self.departments is None:
+            # Lookup for accounts
+            departments = self.client.get_entity(
+                object_type="departments",
+                fields=["DEPARTMENTID", "TITLE"],
+            )
+            self.departments = self.dictify(departments, "TITLE", "DEPARTMENTID")
+        return self.departments
 
     def get_items(self):
         if self.items is None:
