@@ -370,6 +370,31 @@ class SageIntacctSDK:
         response = self.format_and_send_request(data)
         return response
 
+    def query_entity(
+        self, object_type: str, bill_number: str, fields: dict, filters={}
+    ):
+        """
+        Get a sample of data from an endpoint, useful for determining schemas.
+        Returns:
+            List of Dict in objects schema.
+        """
+        intacct_object_type = INTACCT_OBJECTS[object_type]
+        data = {
+            "query": {
+                "object": intacct_object_type,
+                "select": {"field": fields},
+                "pagesize": "1000",
+            }
+        }
+        if len(filters) > 0:
+            data["query"].update({"filter": filters})
+
+        entities = self.format_and_send_request(data)
+        if int(entities["data"]["@totalcount"]) > 0:
+            return entities["data"][intacct_object_type]
+        else:
+            return None
+
 
 def get_client(
     *,

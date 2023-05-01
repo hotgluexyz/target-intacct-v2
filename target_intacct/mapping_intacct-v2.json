@@ -3,7 +3,7 @@
         "null"
     ],
     "purchase_invoices":{
-      "invoiceNumber": "id",
+      "invoiceNumber": "RECORDID",
       "lineItems": [
           {
               "productId": "ITEMID",
@@ -16,7 +16,15 @@
               "discountAmount": null,
               "taxAmount": null,
               "taxCode": null,
-              "accountName": "ACCOUNTNAME"
+              "supplierNumber": "VENDORID",
+              "supplierName": "VENDORNAME",
+              "departmentId": "DEPARTMENTID",
+              "accountNumber": "ACCOUNTNO",
+              "accountName": "ACCOUNTNAME",
+              "classId": "CLASSID",
+              "className": "CLASSNAME",
+              "projectId": "PROJECTID",
+              "projectName": "PROJECTNAME"
           }
       ],
       "supplierNumber": "VENDORID",
@@ -25,6 +33,7 @@
       "issueDate": "WHENPOSTED",
       "dueDate": "WHENDUE",
       "paidDate": "RECPAYMENTDATE",
+      "description": "DESCRIPTION",
       "address": {
           "id": null,
           "name": "LOCATIONNAME",
@@ -44,5 +53,20 @@
       "status": null,
       "createdAt": "WHENCREATED",
       "updatedAt": null
+  },
+  "account_payable_vendors": {
+    "vendorNumber":"VENDORID",
+    "vendorName":"NAME",
+    "addresses":{
+            "line1":"ADDRESS1",
+            "city":"CITY",
+            "state":"STATE",
+            "country":"COUNTRY",
+            "postalCode":"ZIP"
+        },
+    "phones":{
+            "number":"PHONE1",
+            "type":null
+        }
   }
 }

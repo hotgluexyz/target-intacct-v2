@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Union
 
 from singer_sdk.plugin_base import PluginBase
@@ -13,7 +14,6 @@ from .client import SageIntacctSDK, get_client
 from .const import DEFAULT_API_URL, KEY_PROPERTIES, REQUIRED_CONFIG_KEYS
 
 # import xmltodict
-
 
 
 class intacctSink(RecordSink):
@@ -42,25 +42,79 @@ class intacctSink(RecordSink):
             else {},
         )
 
+        self.vendors = None
+        self.locations = None
+        self.accounts = None
+        self.items = None
+        self.banks = None
+        self.classes = None
+        self.projects = None
+        self.departments = None
+
+    def get_vendors(self):
         # Lookup for vendors
-        vendors = self.client.get_entity(
-            object_type="accounts_payable_vendors", fields=["VENDORID", "NAME"]
-        )
-        self.vendors = self.dictify(vendors, "NAME", "VENDORID")
+        if self.vendors is None:
+            vendors = self.client.get_entity(
+                object_type="accounts_payable_vendors", fields=["VENDORID", "NAME"]
+            )
+            self.vendors = self.dictify(vendors, "NAME", "VENDORID")
+        return self.vendors
+    
+    def get_classes(self):
+        # Lookup for vendors
+        if self.classes is None:
+            classes = self.client.get_entity(
+                object_type="classes", fields=["CLASSID", "NAME"]
+            )
+            self.classes = self.dictify(classes, "NAME", "CLASSID")
+        return self.classes
 
+    def get_projects(self):
+        # Lookup for vendors
+        if self.projects is None:
+            projects = self.client.get_entity(
+                object_type="projects", fields=["PROJECTID", "NAME"]
+            )
+            self.projects = self.dictify(projects, "NAME", "PROJECTID")
+        return self.projects
+
+    def get_locations(self):
         # Lookup for Locations
-        locations = self.client.get_entity(
-            object_type="locations", fields=["LOCATIONID", "NAME"]
-        )
-        self.locations = self.dictify(locations, "NAME", "LOCATIONID")
+        if self.locations is None:
+            locations = self.client.get_entity(
+                object_type="locations", fields=["LOCATIONID", "NAME"]
+            )
+            self.locations = self.dictify(locations, "NAME", "LOCATIONID")
+        return self.locations
 
-        # Lookup for accounts
-        accounts = self.client.get_entity(object_type='general_ledger_accounts',fields=["RECORDNO", "ACCOUNTNO", "TITLE"])
-        self.accounts = self.dictify(accounts,"TITLE","ACCOUNTNO")
+    def get_accounts(self):
+        if self.accounts is None:
+            # Lookup for accounts
+            accounts = self.client.get_entity(
+                object_type="general_ledger_accounts",
+                fields=["RECORDNO", "ACCOUNTNO", "TITLE"],
+            )
+            self.accounts = self.dictify(accounts, "TITLE", "ACCOUNTNO")
+        return self.accounts
 
-        # Lookup for items
-        items = self.client.get_entity(object_type="item", fields=["ITEMID", "NAME"])
-        self.items = self.dictify(items, "NAME", "ITEMID")
+    def get_departments(self):
+        if self.departments is None:
+            # Lookup for accounts
+            departments = self.client.get_entity(
+                object_type="departments",
+                fields=["DEPARTMENTID", "TITLE"],
+            )
+            self.departments = self.dictify(departments, "TITLE", "DEPARTMENTID")
+        return self.departments
+
+    def get_items(self):
+        if self.items is None:
+            # Lookup for items
+            items = self.client.get_entity(
+                object_type="item", fields=["ITEMID", "NAME"]
+            )
+            self.items = self.dictify(items, "NAME", "ITEMID")
+        return self.items
 
     def dictify(sefl, array, key, value):
         array_ = {}
@@ -77,21 +131,42 @@ class intacctSink(RecordSink):
         # Get the matching values for the payload :
         # Matching "VENDORNAME" -> "VENDORID"
         if payload.get("VENDORNAME"):
+            self.get_vendors()
             payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
             payload.pop("VENDORNAME")
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
             if payload.get("LOCATIONNAME"):
+                self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+            
+            if item.get("VENDORNAME"):
+                self.get_vendors()
+                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
+                item.pop("VENDORNAME")
+
+            if item.get("CLASSNAME"):
+                self.get_classes()
+                item["CLASSID"] = self.classes[item["CLASSNAME"]]
+                item.pop("CLASSNAME")
+            
+            if item.get("PROJECTNAME"):
+                self.get_projects()
+                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                item.pop("PROJECTNAME")
 
             # TODO For now the account number is set by hand.
             # item["ACCOUNTNO"] = "6220"
-            if item.get("ACCOUNTNAME") and self.accounts.get(item['ACCOUNTNAME']):
-                item["ACCOUNTNO"] = self.accounts.get(item['ACCOUNTNAME'])
-            else:
-                raise Exception(f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item")
+            self.get_accounts()
+            if item.get("ACCOUNTNAME") and self.accounts.get(item["ACCOUNTNAME"]):
+                item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
+            elif not item.get("ACCOUNTNO"):
+                raise Exception(
+                    f"ERROR: ACCOUNTNO or ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                )
 
+            self.get_items()
             if payload.get("ITEMNAME") and self.items.get(payload.get("ITEMNAME")):
                 item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
                 item.pop("ITEMNAME")
@@ -104,6 +179,87 @@ class intacctSink(RecordSink):
 
         self.client.format_and_send_request(data)
 
+    def suppliers_upload(self, record):
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(
+            record, "account_payable_vendors", self.target_name
+        )
+        payload["VENDORID"] = payload["VENDORID"][
+            :20
+        ]  # Intact size limit on VENDORID (20 characters)
+        data = {"create": {"object": "account_payable_vendors", "VENDOR": payload}}
+
+        self.get_vendors()
+        if (not payload["VENDORID"] in self.vendors.items()) and (
+            not payload["NAME"] in self.vendors.keys()
+        ):
+            self.client.format_and_send_request(data)
+
+    def get_banks(self):
+        # Lookup for banks
+        if self.banks is None:
+            banks = self.client.get_entity(
+                object_type="payment_provider_bank_accounts",
+                fields=["BANKACCOUNTID", "PROVIDERID"],
+            )
+            self.banks = banks
+        return self.banks
+
+    def query_bill(self, bill_number):
+        if self.items is None:
+            # Lookup for Bills
+            bills = self.client.query_entity(
+                object_type="accounts_payable_bills",
+                bill_number=bill_number,
+                fields={
+                    "RECORDNO",
+                    "VENDORNAME",
+                    "VENDORID",
+                    "RECORDID",
+                    "DOCNUMBER",
+                    "CURRENCY",
+                    "TRX_TOTALDUE",
+                },
+                filters={"equalto": {"field": "RECORDID", "value": f"{bill_number}"}},
+            )
+        return bills
+
+    def pay_bill(self, record):
+        bill = self.query_bill(record["billNumber"])
+        if bill is not None:
+            if "paymentDate" not in record:
+                payment_date = datetime.today().strftime("%d/%m/%Y")
+            elif record["paymentDate"] is None:
+                payment_date = datetime.today().strftime("%d/%m/%Y")
+            else:
+                payment_date = record["paymentDate"]
+            bank_name = record["bankName"]
+            if "--" in bank_name:
+                bank_name = bank_name.split("--")[0]
+            payload = {
+                "FINANCIALENTITY": bank_name,
+                "PAYMENTMETHOD": record["paymentMethod"],
+                "VENDORID": bill["VENDORID"],
+                "CURRENCY": bill["CURRENCY"],
+                "PAYMENTDATE": payment_date,
+                "APPYMTDETAILS": {
+                    "APPYMTDETAIL": {
+                        "RECORDKEY": bill["RECORDNO"],
+                        "TRX_PAYMENTAMOUNT": bill["TRX_TOTALDUE"],
+                    }
+                },
+            }
+            data = {
+                "create": {"object": "accounts_payable_payments", "APPYMT": payload}
+            }
+            self.client.format_and_send_request(data)
+
     def process_record(self, record: dict, context: dict) -> None:
+
+        if self.stream_name == "Suppliers":
+            self.suppliers_upload(record)
         if self.stream_name in ["PurchaseInvoices", "Bills"]:
             self.purchase_invoices_upload(record)
+        if self.stream_name == "PayBill":
+            self.pay_bill(record)
