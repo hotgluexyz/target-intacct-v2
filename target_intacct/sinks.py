@@ -105,6 +105,5 @@ class intacctSink(RecordSink):
         self.client.format_and_send_request(data)
 
     def process_record(self, record: dict, context: dict) -> None:
-
-        if self.stream_name == "PurchaseInvoices":
+        if self.stream_name in ["PurchaseInvoices", "Bills"]:
             self.purchase_invoices_upload(record)
