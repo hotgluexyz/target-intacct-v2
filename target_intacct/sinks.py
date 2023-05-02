@@ -178,6 +178,64 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
+    
+    def bills_upload(self, record):
+
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
+        
+        if payload.get("LOCATIONNAME"):
+            self.get_locations()
+            payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+            payload.pop("LOCATIONNAME")
+        
+        if payload.get("VENDORNAME"):
+            self.get_vendors()
+            payload["VENDORID"] = self.vendors[item["VENDORNAME"]]
+        
+        if payload.get("VENDORNUMBER"):
+            self.get_vendors()
+            payload["VENDORNUMBER"] = self.vendors[item["VENDORNUMBER"]]
+        
+        for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            if payload.get("LOCATIONNAME"):
+                self.get_locations()
+                item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+            
+            if item.get("VENDORNAME"):
+                self.get_vendors()
+                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
+                item.pop("VENDORNAME")
+
+            if item.get("CLASSNAME"):
+                self.get_classes()
+                item["CLASSID"] = self.classes[item["CLASSNAME"]]
+                item.pop("CLASSNAME")
+            
+            if item.get("PROJECTNAME"):
+                self.get_projects()
+                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                item.pop("PROJECTNAME")
+
+            self.get_accounts()
+            if item.get("ACCOUNTNAME"):
+                item["ACCOUNTNAME"] = item["ACCOUNTNAME"]
+            elif not item.get("ACCOUNTNAME"):
+                raise Exception(
+                    f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                )
+
+            self.get_items()
+            if payload.get("ITEMNAME") and self.items.get(payload.get("ITEMNAME")):
+                item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
+                item.pop("ITEMNAME")
+
+        payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+
+        data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+
+        self.client.format_and_send_request(data)
 
     def suppliers_upload(self, record):
         # Format data
@@ -259,7 +317,9 @@ class intacctSink(RecordSink):
 
         if self.stream_name == "Suppliers":
             self.suppliers_upload(record)
-        if self.stream_name in ["PurchaseInvoices", "Bills"]:
+        if self.stream_name == "PurchaseInvoices":
             self.purchase_invoices_upload(record)
+        if self.stream_name == "Bills":
+            self.bills_upload(record)
         if self.stream_name == "PayBill":
             self.pay_bill(record)
