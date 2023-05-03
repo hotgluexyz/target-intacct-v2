@@ -183,30 +183,28 @@ class intacctSink(RecordSink):
 
         # Format data
         mapping = UnifiedMapping()
-        payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
+        payload = mapping.prepare_payload(record, "bills", self.target_name)
         
+        #include locationid at header level
         if payload.get("LOCATIONNAME"):
             self.get_locations()
             payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
             payload.pop("LOCATIONNAME")
-        
+
+        #include vendorname and vendornumber
         if payload.get("VENDORNAME"):
             self.get_vendors()
-            payload["VENDORID"] = self.vendors[item["VENDORNAME"]]
+            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
         
         if payload.get("VENDORNUMBER"):
             self.get_vendors()
-            payload["VENDORNUMBER"] = self.vendors[item["VENDORNUMBER"]]
+            payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
         
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            #include locationid at line level
             if payload.get("LOCATIONNAME"):
                 self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
-            
-            if item.get("VENDORNAME"):
-                self.get_vendors()
-                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
-                item.pop("VENDORNAME")
 
             if item.get("CLASSNAME"):
                 self.get_classes()
@@ -218,18 +216,24 @@ class intacctSink(RecordSink):
                 item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
                 item.pop("PROJECTNAME")
 
+            #use accountname instead of accountno
             self.get_accounts()
-            if item.get("ACCOUNTNAME"):
-                item["ACCOUNTNAME"] = item["ACCOUNTNAME"]
-            elif not item.get("ACCOUNTNAME"):
+            if item.get("ACCOUNTNO"):
+                acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
+                item["ACCOUNTNAME"] = acct_name
+            elif not acct_name:
                 raise Exception(
                     f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
                 )
 
-            self.get_items()
-            if payload.get("ITEMNAME") and self.items.get(payload.get("ITEMNAME")):
-                item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
-                item.pop("ITEMNAME")
+            #we add departmentid as intacct requires it
+            self.get_departments()
+            if item.get("DEPARTMENT"):
+                item["DEPARTMENTID"] = self.departments[item["DEPARTMENT"]]
+            elif item.get("DEPARTMENT") is None:
+                raise Exception(
+                    f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
+                )
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 

@@ -3,70 +3,98 @@
         "null"
     ],
     "purchase_invoices":{
-      "invoiceNumber": "RECORDID",
-      "lineItems": [
-          {
-              "productId": "ITEMID",
-              "productName": "ITEMNAME",
-              "productSku": null,
-              "description": "ENTRYDESCRIPTION",
-              "quantity": null,
-              "unitPrice": null,
-              "totalPrice": "TRX_AMOUNT",
-              "discountAmount": null,
-              "taxAmount": null,
-              "taxCode": null,
-              "supplierNumber": "VENDORID",
-              "supplierName": "VENDORNAME",
-              "departmentId": "DEPARTMENTID",
-              "accountNumber": "ACCOUNTNO",
-              "accountName": "ACCOUNTNAME",
-              "classId": "CLASSID",
-              "className": "CLASSNAME",
-              "projectId": "PROJECTID",
-              "projectName": "PROJECTNAME"
-          }
-      ],
-      "supplierNumber": "VENDORID",
-      "supplierName": "VENDORNAME",
-      "currency": "BASECURR",
-      "issueDate": "WHENPOSTED",
-      "dueDate": "WHENDUE",
-      "paidDate": "RECPAYMENTDATE",
-      "description": "DESCRIPTION",
-      "address": {
-          "id": null,
-          "name": "LOCATIONNAME",
-          "line1": null,
-          "line2": null,
-          "line3": null,
-          "city": null,
-          "state": null,
-          "postalCode": null,
-          "country": null
-      },
-      "subTotal": null,
-      "totalDiscount": null,
-      "totalTaxAmount": null,
-      "totalAmount": null,
-      "amountDue": null,
-      "status": null,
-      "createdAt": "WHENCREATED",
-      "updatedAt": null
-  },
-  "account_payable_vendors": {
-    "vendorNumber":"VENDORID",
-    "vendorName":"NAME",
-    "addresses":{
-            "line1":"ADDRESS1",
-            "city":"CITY",
-            "state":"STATE",
-            "country":"COUNTRY",
-            "postalCode":"ZIP"
+        "invoiceNumber": "RECORDID",
+        "lineItems": [
+            {
+                "productId": "ITEMID",
+                "productName": "ITEMNAME",
+                "productSku": null,
+                "description": "ENTRYDESCRIPTION",
+                "quantity": null,
+                "unitPrice": null,
+                "totalPrice": "TRX_AMOUNT",
+                "discountAmount": null,
+                "taxAmount": null,
+                "taxCode": null,
+                "supplierNumber": "VENDORID",
+                "supplierName": "VENDORNAME",
+                "departmentId": "DEPARTMENTID",
+                "accountNumber": "ACCOUNTNO",
+                "accountName": "ACCOUNTNAME",
+                "classId": "CLASSID",
+                "className": "CLASSNAME",
+                "projectId": "PROJECTID",
+                "projectName": "PROJECTNAME"
+            }
+        ],
+        "supplierNumber": "VENDORID",
+        "supplierName": "VENDORNAME",
+        "currency": "BASECURR",
+        "issueDate": "WHENPOSTED",
+        "dueDate": "WHENDUE",
+        "paidDate": "RECPAYMENTDATE",
+        "description": "DESCRIPTION",
+        "address": {
+            "id": null,
+            "name": "LOCATIONNAME",
+            "line1": null,
+            "line2": null,
+            "line3": null,
+            "city": null,
+            "state": null,
+            "postalCode": null,
+            "country": null
         },
-    "phones":{
-            "number":"PHONE1",
-            "type":null
+        "subTotal": null,
+        "totalDiscount": null,
+        "totalTaxAmount": null,
+        "totalAmount": null,
+        "amountDue": null,
+        "status": null,
+        "createdAt": "WHENCREATED",
+        "updatedAt": null
+    },
+    "bills": {
+        "status": null,
+        "dueDate": "WHENDUE",
+        "currency": "BASECURR",
+        "paidDate": "RECPAYMENTDATE",
+        "subTotal": null,
+        "amountDue": null,
+        "createdAt": "WHENCREATED",
+        "issueDate": "WHENPOSTED",
+        "expenses": [
+            {
+                "amount": "TRX_AMOUNT",
+                "accountNumber": "ACCOUNTNO",
+                "description": "ENTRYDESCRIPTION",
+                "department": "DEPARTMENT",
+                "locationId": "LOCATIONID"
+            }
+        ],
+        "updatedAt": null,
+        "vendorName": "VENDORNAME",
+        "totalAmount": null,
+        "invoiceNumber": "RECORDID",
+        "totalDiscount": null,
+        "totalTaxAmount": null,
+        "location": "LOCATIONNAME",
+        "locationId": "LOCATIONID",
+        "subsidiary": null
+    },
+    "account_payable_vendors": {
+        "vendorNumber": "VENDORID",
+        "vendorName": "NAME",
+        "addresses": {
+            "line1": "ADDRESS1",
+            "city": "CITY",
+            "state": "STATE",
+            "country": "COUNTRY",
+            "postalCode": "ZIP"
+        },
+        "phones": {
+            "number": "PHONE1",
+            "type": null
         }
-  }
+    }
 }
