@@ -63,7 +63,7 @@
         "amountDue": null,
         "createdAt": "WHENCREATED",
         "issueDate": "WHENPOSTED",
-        "expenses": [
+        "lineItems": [
             {
                 "amount": "TRX_AMOUNT",
                 "accountNumber": "ACCOUNTNO",

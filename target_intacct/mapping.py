@@ -69,7 +69,7 @@ class UnifiedMapping:
                 payload = self.map_address(
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )
-            elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
+            elif (lookup_key == "lineItems") and target == "intacct-v2":
                 payload["APBILLITEMS"] = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )

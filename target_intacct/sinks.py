@@ -218,6 +218,7 @@ class intacctSink(RecordSink):
 
             #use accountname instead of accountno
             self.get_accounts()
+            acct_name = None
             if item.get("ACCOUNTNO"):
                 acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
                 item["ACCOUNTNAME"] = acct_name
