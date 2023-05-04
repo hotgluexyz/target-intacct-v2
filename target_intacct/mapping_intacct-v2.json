@@ -64,6 +64,22 @@
         "createdAt": "WHENCREATED",
         "issueDate": "WHENPOSTED",
         "lineItems": [
+            {   
+                "taxCode": null,
+                "quantity": null,
+                "projectId": "PROJECTID",
+                "taxAmount": null,
+                "unitPrice": null,
+                "productSku": null,
+                "totalPrice": "TRX_AMOUNT",
+                "accountName": "ACCOUNTNAME",
+                "description": "ENTRYDESCRIPTION",
+                "productName": "ITEMNAME",
+                "discountAmount": null,
+                "locationId": "LOCATIONID"
+            }
+        ],
+        "expenses": [
             {
                 "amount": "TRX_AMOUNT",
                 "accountNumber": "ACCOUNTNO",

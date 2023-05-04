@@ -218,19 +218,21 @@ class intacctSink(RecordSink):
 
             #use accountname instead of accountno
             self.get_accounts()
-            acct_name = None
-            if item.get("ACCOUNTNO"):
+            if item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
+                item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
+            if item.get("ACCOUNTNO") and not item.get("ACCOUNTNAME"):
                 acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
                 item["ACCOUNTNAME"] = acct_name
-            elif not acct_name:
+            elif not item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
                 )
 
             #we add departmentid as intacct requires it
-            self.get_departments()
             if item.get("DEPARTMENT"):
                 item["DEPARTMENTID"] = self.departments[item["DEPARTMENT"]]
+            elif item.get("LOCATIONID"):
+                item["DEPARTMENTID"] = item["LOCATIONID"]
             elif item.get("DEPARTMENT") is None:
                 raise Exception(
                     f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"

@@ -29,6 +29,7 @@ class UnifiedMapping:
         return payload
 
     def map_lineItems(self, line_items, line_items_mapping):
+        line_items_ = []
         if isinstance(line_items, str):
             line_items = json.loads(line_items)
         if isinstance(line_items, list):
@@ -45,7 +46,7 @@ class UnifiedMapping:
                             payload_return[key] = item_[key]
                     line_items_ += [payload_return]
 
-        return {"APBILLITEM": line_items_}
+        return line_items_
 
     def map_custom_fields(self, payload, fields):
         # Populate custom fields.
@@ -60,6 +61,7 @@ class UnifiedMapping:
         payload = {}
         payload_return = {}
         lookup_keys = mapping.keys()
+        payload["APBILLITEMS"] = {"APBILLITEM": []}
         for lookup_key in lookup_keys:
             if (
                 lookup_key == "address"
@@ -69,10 +71,12 @@ class UnifiedMapping:
                 payload = self.map_address(
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )
-            elif (lookup_key == "lineItems") and target == "intacct-v2":
-                payload["APBILLITEMS"] = self.map_lineItems(
+            elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
+                lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
+                
+                payload["APBILLITEMS"]["APBILLITEM"] = payload["APBILLITEMS"]["APBILLITEM"] + lines
             elif "date" in lookup_key.lower():
                 val = record.get(lookup_key)
                 if val:
