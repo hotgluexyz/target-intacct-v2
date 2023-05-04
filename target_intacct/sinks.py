@@ -178,6 +178,68 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
+    
+    def bills_upload(self, record):
+
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(record, "bills", self.target_name)
+        
+        #include locationid at header level
+        if payload.get("LOCATIONNAME"):
+            self.get_locations()
+            payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+            payload.pop("LOCATIONNAME")
+
+        #include vendorname and vendornumber
+        if payload.get("VENDORNAME"):
+            self.get_vendors()
+            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+        
+        if payload.get("VENDORNUMBER"):
+            self.get_vendors()
+            payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
+        
+        for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            #include locationid at line level
+            if payload.get("LOCATIONNAME"):
+                self.get_locations()
+                item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+
+            if item.get("CLASSNAME"):
+                self.get_classes()
+                item["CLASSID"] = self.classes[item["CLASSNAME"]]
+                item.pop("CLASSNAME")
+            
+            if item.get("PROJECTNAME"):
+                self.get_projects()
+                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                item.pop("PROJECTNAME")
+
+            #use accountname instead of accountno
+            self.get_accounts()
+            if item.get("ACCOUNTNO"):
+                acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
+                item["ACCOUNTNAME"] = acct_name
+            elif not acct_name:
+                raise Exception(
+                    f"ERROR: ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                )
+
+            #we add departmentid as intacct requires it
+            self.get_departments()
+            if item.get("DEPARTMENT"):
+                item["DEPARTMENTID"] = self.departments[item["DEPARTMENT"]]
+            elif item.get("DEPARTMENT") is None:
+                raise Exception(
+                    f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
+                )
+
+        payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+
+        data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+
+        self.client.format_and_send_request(data)
 
     def suppliers_upload(self, record):
         # Format data
@@ -259,7 +321,9 @@ class intacctSink(RecordSink):
 
         if self.stream_name == "Suppliers":
             self.suppliers_upload(record)
-        if self.stream_name in ["PurchaseInvoices", "Bills"]:
+        if self.stream_name == "PurchaseInvoices":
             self.purchase_invoices_upload(record)
+        if self.stream_name == "Bills":
+            self.bills_upload(record)
         if self.stream_name == "PayBill":
             self.pay_bill(record)
