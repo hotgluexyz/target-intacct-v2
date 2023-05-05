@@ -76,7 +76,9 @@
                 "description": "ENTRYDESCRIPTION",
                 "productName": "ITEMNAME",
                 "discountAmount": null,
-                "locationId": "LOCATIONID"
+                "locationId": "LOCATIONID",
+                "classId": "CLASSID",
+                "className": "CLASSNAME"
             }
         ],
         "expenses": [
