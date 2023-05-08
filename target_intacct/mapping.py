@@ -75,8 +75,13 @@ class UnifiedMapping:
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
-                
                 payload["APBILLITEMS"]["APBILLITEM"] = payload["APBILLITEMS"]["APBILLITEM"] + lines
+            elif lookup_key == "lines" and target == "intacct-v2":
+                payload["ENTRIES"] = {"GLENTRY": []}
+                lines = self.map_lineItems(
+                    record.get(lookup_key, []), mapping[lookup_key]
+                )
+                payload["ENTRIES"]["GLENTRY"] = lines
             elif "date" in lookup_key.lower():
                 val = record.get(lookup_key)
                 if val:

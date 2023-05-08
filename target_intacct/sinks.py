@@ -50,6 +50,8 @@ class intacctSink(RecordSink):
         self.classes = None
         self.projects = None
         self.departments = None
+        self.customers = None
+        self.journal_entries = None
 
     def get_vendors(self):
         # Lookup for vendors
@@ -115,6 +117,25 @@ class intacctSink(RecordSink):
             )
             self.items = self.dictify(items, "NAME", "ITEMID")
         return self.items
+    
+    def get_customers(self):
+        # Lookup for customers
+        if self.customers is None:
+            customers = self.client.get_entity(
+                object_type="customers", fields=["CUSTOMERID", "NAME"]
+            )
+            self.customers = self.dictify(customers, "NAME", "CUSTOMERID")
+        return self.customers
+    
+    def get_journal_entries(self):
+        # Lookup for journal_entries
+        if self.journal_entries is None:
+            journal_entries = self.client.get_entity(
+                object_type="general_ledger_journal_entries", fields=["BATCH_TITLE", "RECORDNO"]
+            )
+            self.journal_entries = self.dictify(journal_entries, "BATCH_TITLE", "RECORDNO")
+        return self.journal_entries
+    
 
     def dictify(sefl, array, key, value):
         array_ = {}
@@ -229,11 +250,16 @@ class intacctSink(RecordSink):
                 )
 
             #we add departmentid as intacct requires it
+            self.get_departments()
             if item.get("DEPARTMENT"):
-                item["DEPARTMENTID"] = self.departments[item["DEPARTMENT"]]
+                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                item.pop("DEPARTMENT")
+            elif item.get("DEPARTMENTNAME"):
+                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+                item.pop("DEPARTMENTNAME")
             elif item.get("LOCATIONID"):
                 item["DEPARTMENTID"] = item["LOCATIONID"]
-            elif item.get("DEPARTMENT") is None:
+            elif item.get("DEPARTMENT") is None and item.get("DEPARTMENTNAME"):
                 raise Exception(
                     f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
                 )
@@ -243,6 +269,61 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
+
+    def journal_entries_upload(self, record):
+
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(record, "journal_entries", self.target_name)
+
+        payload["JOURNAL"] = "SJ"
+        payload["BATCH_TITLE"] = "SJ"
+        if not payload.get("JOURNAL") and not payload.get("SJ"):
+            raise Exception(
+                    f"ERROR: JOURNAL not found. \n Intaccts Requires an JOURNAL associated"
+                ) 
+        
+        if "APBILLITEMS" in payload.keys():
+            payload.pop("APBILLITEMS")
+
+        for item in payload.get("ENTRIES").get("GLENTRY"):
+            self.get_accounts()
+            if item.get("ACCOUNTNAME"):
+                item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
+                item.pop("ACCOUNTNAME")
+            if not item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
+                raise Exception(
+                    f"ERROR: ACCOUNTNO not found. \n Intaccts Requires an ACCOUNTNO associated with each line item"
+                )
+            if item.get("TR_TYPE"):
+                value = 1 if item.get("TR_TYPE").lower() == "debit" else -1
+                item["TR_TYPE"] = value
+
+            self.get_departments()
+            if item.get("DEPARTMENT"):
+                item["DEPARTMENTID"] = self.classes.get(item["DEPARTMENT"])
+            
+            self.get_classes()
+            if item.get("CLASSNAME"):
+                item["CLASSID"] = self.classes.get(item["CLASSNAME"])
+                item.pop("CLASSNAME")
+            
+            self.get_customers()
+            if item.get("CUSTOMERNAME"):
+                item["CUSTOMERID"] = self.customers.get(item["CUSTOMERNAME"])
+                item.pop("CUSTOMERNAME")
+            
+            self.get_vendors()
+            if item.get("VENDORNAME"):
+                item["VENDORID"] = self.vendors.get(item["VENDORNAME"])
+                item.pop("VENDORNAME")
+
+        payload["BATCH_DATE"] = payload["BATCH_DATE"].split("T")[0]
+        
+        data = {"create": {"object": "GLBATCH", "GLBATCH": payload}}
+
+        self.client.format_and_send_request(data)
+
 
     def suppliers_upload(self, record):
         # Format data
@@ -328,5 +409,7 @@ class intacctSink(RecordSink):
             self.purchase_invoices_upload(record)
         if self.stream_name == "Bills":
             self.bills_upload(record)
+        if self.stream_name == "JournalEntries":
+            self.journal_entries_upload(record)
         if self.stream_name == "PayBill":
             self.pay_bill(record)
