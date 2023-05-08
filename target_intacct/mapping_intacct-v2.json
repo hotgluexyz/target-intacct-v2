@@ -77,6 +77,8 @@
                 "productName": "ITEMNAME",
                 "discountAmount": null,
                 "locationId": "LOCATIONID",
+                "department": "DEPARTMENT",
+                "departmentName": "DEPARTMENTNAME",
                 "classId": "CLASSID",
                 "className": "CLASSNAME"
             }
@@ -87,6 +89,7 @@
                 "accountNumber": "ACCOUNTNO",
                 "description": "ENTRYDESCRIPTION",
                 "department": "DEPARTMENT",
+                "departmentName": "DEPARTMENTNAME",
                 "locationId": "LOCATIONID"
             }
         ],
@@ -99,6 +102,33 @@
         "location": "LOCATIONNAME",
         "locationId": "LOCATIONID",
         "subsidiary": null
+    },
+    "journal_entries": {
+        "id":null,
+        "transactionDate":"BATCH_DATE",
+        "currency":null,
+        "departmentId":null,
+        "className":null,
+        "classId":null,
+        "departmentName":null,
+        "lines":[
+            {
+                "accountNumber":"ACCOUNTNO",
+                "accountName":"ACCOUNTNAME",
+                "customerName":"CUSTOMERNAME",
+                "description":"DESCRIPTION",
+                "amount":"TRX_AMOUNT",
+                "postingType":"TR_TYPE",
+                "vendorName":"VENDORNAME",
+                "departmentId":"DEPARTMENTID",
+                "accountId":"ACCOUNTID",
+                "classId":"CLASSID",
+                "customerId":"CUSTOMERID",
+                "vendorId":"VENDORID",
+                "className":"CLASSNAME",
+                "departmentName":"DEPARTMENT"
+            }
+        ]
     },
     "account_payable_vendors": {
         "vendorNumber": "VENDORID",
