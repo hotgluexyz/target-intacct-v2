@@ -126,7 +126,10 @@
                 "customerId":"CUSTOMERID",
                 "vendorId":"VENDORID",
                 "className":"CLASSNAME",
-                "departmentName":"DEPARTMENT"
+                "department":"DEPARTMENT",
+                "departmentName":"DEPARTMENTNAME",
+                "locationName": "LOCATIONNAME",
+                "locationId": "LOCATIONID"
             }
         ]
     },

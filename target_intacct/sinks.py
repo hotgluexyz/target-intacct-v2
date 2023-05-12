@@ -300,9 +300,26 @@ class intacctSink(RecordSink):
                 item["TR_TYPE"] = value
 
             self.get_departments()
-            if item.get("DEPARTMENT"):
-                item["DEPARTMENTID"] = self.classes.get(item["DEPARTMENT"])
-            
+            if not item.get("DEPARTMENTID"):
+                if item.get("DEPARTMENT"):
+                    item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                    item.pop("DEPARTMENT")
+                if item.get("DEPARTMENTNAME"):
+                    item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+                    item.pop("DEPARTMENTNAME")
+                elif not item["DEPARTMENTID"]:
+                    raise Exception(
+                        f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
+                    )
+            elif item.get("DEPARTMENTID"):
+                item["DEPARTMENTID"] = item.get("DEPARTMENTID")
+
+            self.get_locations()
+            if not item.get("LOCATIONID"):
+                if item.get("LOCATIONNAME"):
+                    item["LOCATIONID"] = self.locations[item.get("LOCATIONNAME")]
+                    item.pop("LOCATIONNAME")
+
             self.get_classes()
             if item.get("CLASSNAME"):
                 item["CLASSID"] = self.classes.get(item["CLASSNAME"])
