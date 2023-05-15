@@ -276,12 +276,11 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "journal_entries", self.target_name)
 
-        payload["JOURNAL"] = "SJ"
-        payload["BATCH_TITLE"] = "SJ"
-        if not payload.get("JOURNAL") and not payload.get("SJ"):
-            raise Exception(
-                    f"ERROR: JOURNAL not found. \n Intaccts Requires an JOURNAL associated"
-                ) 
+        if payload.get("JOURNAL"):
+            payload["BATCH_TITLE"] = payload.get("JOURNAL")
+        elif not payload.get("JOURNAL"):
+            payload["JOURNAL"] = "SJ"
+            payload["BATCH_TITLE"] = "SJ"
         
         if "APBILLITEMS" in payload.keys():
             payload.pop("APBILLITEMS")
