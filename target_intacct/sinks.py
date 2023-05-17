@@ -306,10 +306,6 @@ class intacctSink(RecordSink):
                 if item.get("DEPARTMENTNAME"):
                     item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
                     item.pop("DEPARTMENTNAME")
-                elif not item["DEPARTMENTID"]:
-                    raise Exception(
-                        f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
-                    )
             elif item.get("DEPARTMENTID"):
                 item["DEPARTMENTID"] = item.get("DEPARTMENTID")
 
