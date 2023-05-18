@@ -112,6 +112,7 @@
         "className":null,
         "classId":null,
         "departmentName":null,
+        "sourceEntityId": "BASELOCATION_NO",
         "lines":[
             {
                 "accountNumber":"ACCOUNTNO",
