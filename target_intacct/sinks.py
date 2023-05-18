@@ -278,9 +278,6 @@ class intacctSink(RecordSink):
 
         if payload.get("JOURNAL"):
             payload["BATCH_TITLE"] = payload.get("JOURNAL")
-        elif not payload.get("JOURNAL"):
-            payload["JOURNAL"] = "SJ"
-            payload["BATCH_TITLE"] = "SJ"
         
         if "APBILLITEMS" in payload.keys():
             payload.pop("APBILLITEMS")
