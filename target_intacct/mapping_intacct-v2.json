@@ -131,7 +131,7 @@
                 "department":"DEPARTMENT",
                 "departmentName":"DEPARTMENTNAME",
                 "locationName": "LOCATIONNAME",
-                "locationId": "LOCATIONID"
+                "locationId": "LOCATION"
             }
         ]
     },
