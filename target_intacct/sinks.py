@@ -244,9 +244,9 @@ class intacctSink(RecordSink):
             if item.get("ACCOUNTNO") and not item.get("ACCOUNTNAME"):
                 acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
                 item["ACCOUNTNAME"] = acct_name
-            elif not item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
+            elif not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
+                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found for this tenant. \n Intaccts Requires an ACCOUNTNO associated with each line item"
                 )
 
             #we add departmentid as intacct requires it
@@ -257,12 +257,6 @@ class intacctSink(RecordSink):
             elif item.get("DEPARTMENTNAME"):
                 item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
                 item.pop("DEPARTMENTNAME")
-            elif item.get("LOCATIONID"):
-                item["DEPARTMENTID"] = item["LOCATIONID"]
-            elif item.get("DEPARTMENT") is None and item.get("DEPARTMENTNAME"):
-                raise Exception(
-                    f"ERROR: DEPARTMENT not found. \n Intaccts Requires a DEPARTMENT associated with a Bill"
-                )
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
