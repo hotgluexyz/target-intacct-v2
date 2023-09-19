@@ -149,12 +149,21 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
 
+        #prepare attachment payload
+        att_payload = mapping.prepare_attachment_payload(record)
+        if att_payload:
+            #create folder
+            folder_payload = {"create_supdocfolder": {"supdocfoldername": payload.get("RECORDID"), "object": "supdocfolder"}}
+            self.client.format_and_send_request(folder_payload)
+            # post attachments
+            self.client.format_and_send_request(att_payload)
+            payload["SUPDOCID"] = att_payload["create_supdoc"]["supdocid"]
+
         # Get the matching values for the payload :
         # Matching "VENDORNAME" -> "VENDORID"
         if payload.get("VENDORNAME"):
             self.get_vendors()
             payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
-            payload.pop("VENDORNAME")
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
@@ -162,10 +171,17 @@ class intacctSink(RecordSink):
                 self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
             
+            if payload.get("LOCATIONNAME"):
+                self.get_locations()
+                item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+
             if item.get("VENDORNAME"):
                 self.get_vendors()
-                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
+                item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
                 item.pop("VENDORNAME")
+            
+            if not item.get("VENDORNAME") and payload.get("VENDORNAME"):
+                item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
 
             if item.get("CLASSNAME"):
                 self.get_classes()
@@ -192,7 +208,15 @@ class intacctSink(RecordSink):
                 item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
                 item.pop("ITEMNAME")
 
-        payload.pop("LOCATIONNAME")
+            self.get_departments()
+            if item.get("DEPARTMENT"):
+                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                item.pop("DEPARTMENT")
+            elif item.get("DEPARTMENTNAME"):
+                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+                item.pop("DEPARTMENTNAME")
+
+        payload.pop("LOCATIONNAME", None)
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
@@ -201,10 +225,19 @@ class intacctSink(RecordSink):
         self.client.format_and_send_request(data)
     
     def bills_upload(self, record):
-
         # Format data
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "bills", self.target_name)
+
+        #prepare attachment payload
+        att_payload = mapping.prepare_attachment_payload(record)
+        if att_payload:
+            #create folder
+            folder_payload = {"create_supdocfolder": {"supdocfoldername": payload.get("RECORDID"), "object": "supdocfolder"}}
+            self.client.format_and_send_request(folder_payload)
+            # post attachments
+            self.client.format_and_send_request(att_payload)
+            payload["SUPDOCID"] = att_payload["create_supdoc"]["supdocid"]
         
         #include locationid at header level
         if payload.get("LOCATIONNAME"):
@@ -215,13 +248,18 @@ class intacctSink(RecordSink):
         #include vendorname and vendornumber
         if payload.get("VENDORNAME"):
             self.get_vendors()
-            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
-        
+            vendor_dict = {"VENDORID": self.vendors[payload["VENDORNAME"]]}
+            payload = {**vendor_dict, **payload}
+
         if payload.get("VENDORNUMBER"):
             self.get_vendors()
             payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
         
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            if payload.get("VENDORNAME"):
+                self.get_vendors()
+                item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+
             #include locationid at line level
             if payload.get("LOCATIONNAME"):
                 self.get_locations()
@@ -263,6 +301,7 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
+
 
     def journal_entries_upload(self, record):
 

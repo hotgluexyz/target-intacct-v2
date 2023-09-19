@@ -245,7 +245,7 @@ class SageIntacctSDK:
         object_type = data[key]["object"]
 
         # Remove object entry if unnecessary
-        if key == "create":
+        if "create" in key:
             data[key].pop("object", None)
 
         timestamp = dt.datetime.now()
