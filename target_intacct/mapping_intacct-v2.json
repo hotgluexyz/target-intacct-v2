@@ -18,7 +18,8 @@
                 "taxCode": null,
                 "supplierNumber": "VENDORID",
                 "supplierName": "VENDORNAME",
-                "departmentId": "DEPARTMENTID",
+                "department": "DEPARTMENT",
+                "departmentName": "DEPARTMENTNAME",
                 "accountNumber": "ACCOUNTNO",
                 "accountName": "ACCOUNTNAME",
                 "classId": "CLASSID",
@@ -52,7 +53,9 @@
         "amountDue": null,
         "status": null,
         "createdAt": "WHENCREATED",
-        "updatedAt": null
+        "updatedAt": null,
+        "location": "LOCATIONNAME",
+        "locationId": "LOCATIONID"
     },
     "bills": {
         "status": null,

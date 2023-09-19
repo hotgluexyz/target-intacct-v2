@@ -1,5 +1,7 @@
 import json
 import os
+import requests
+import base64
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -97,3 +99,34 @@ class UnifiedMapping:
             if key not in ignore and key is not None:
                 payload_return[key] = payload[key]
         return payload_return
+
+    def prepare_attachment_payload(self, data):
+        attachments = data.get("attachments", [])
+        invoice_number = data.get("invoiceNumber")
+
+        for attachment in attachments:
+            url = attachment.get("url")
+            if url:
+                response = requests.get(url)
+                data = base64.b64encode(response.content)
+                data = data.decode()
+                attachment["data"] = data
+
+        attachment_payload = [{"attachment":{
+            "attachmentname": att.get("name"), 
+            "attachmenttype": "pdf",
+            "attachmentdata": att.get("data"),
+            }} for att in attachments]
+        
+        payload = {
+            "create_supdoc": {
+                "object": "supdoc",
+                "supdocid": invoice_number[-20:], #only 20 chars allowed
+                "supdocname": invoice_number,
+                "supdocfoldername": invoice_number,
+                "attachments": attachment_payload
+            }
+        }
+        if attachment_payload:
+            return payload
+        return None
