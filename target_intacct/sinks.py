@@ -344,9 +344,6 @@ class intacctSink(RecordSink):
                 if item.get("LOCATIONNAME"):
                     item["LOCATION"] = self.locations[item.get("LOCATIONNAME")]
                     item.pop("LOCATIONNAME")
-            
-            if item.get("LOCATION"):
-                item["DEPARTMENT"] = item["LOCATION"]
 
             self.get_classes()
             if item.get("CLASSNAME"):
