@@ -331,13 +331,13 @@ class intacctSink(RecordSink):
             self.get_departments()
             if not item.get("DEPARTMENTID"):
                 if item.get("DEPARTMENT"):
-                    item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                    item["DEPARTMENT"] = self.departments[item.get("DEPARTMENT")]
                     item.pop("DEPARTMENT")
                 if item.get("DEPARTMENTNAME"):
-                    item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+                    item["DEPARTMENT"] = self.departments[item.get("DEPARTMENTNAME")]
                     item.pop("DEPARTMENTNAME")
             elif item.get("DEPARTMENTID"):
-                item["DEPARTMENTID"] = item.get("DEPARTMENTID")
+                item["DEPARTMENT"] = item.get("DEPARTMENTID")
 
             self.get_locations()
             if not item.get("LOCATION"):
