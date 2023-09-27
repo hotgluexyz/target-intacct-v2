@@ -11,6 +11,7 @@ from urllib.parse import unquote
 import requests
 import singer
 import xmltodict
+import logging
 
 from target_intacct.exceptions import (
     ExpiredTokenError,
@@ -138,6 +139,15 @@ class SageIntacctSDK:
         parsed_xml = xmltodict.parse(response.text)
         parsed_response = json.loads(json.dumps(parsed_xml))
 
+        #getting the errors
+        res = parsed_response["response"]
+        if res.get("errormessage"):
+            error = res.get("errormessage")
+        elif res.get("operation"):
+            error = res.get("operation").get("result", {}).get("errormessage", {})
+
+        logging.debug(f"response: {parsed_response}")
+
         if response.status_code == 200:
             if parsed_response["response"]["control"]["status"] == "success":
                 api_response = parsed_response["response"]["operation"]
@@ -160,28 +170,28 @@ class SageIntacctSDK:
                 return api_response
 
         if response.status_code == 400:
-            raise WrongParamsError("Some of the parameters are wrong", parsed_response)
+            raise WrongParamsError("Some of the parameters are wrong", error)
 
         if response.status_code == 401:
             raise InvalidTokenError(
-                "Invalid token / Incorrect credentials", parsed_response
+                "Invalid token / Incorrect credentials", error
             )
 
         if response.status_code == 403:
             raise NoPrivilegeError(
-                "Forbidden, the user has insufficient privilege", parsed_response
+                "Forbidden, the user has insufficient privilege", error
             )
 
         if response.status_code == 404:
-            raise NotFoundItemError("Not found item with ID", parsed_response)
+            raise NotFoundItemError("Not found item with ID", error)
 
         if response.status_code == 498:
-            raise ExpiredTokenError("Expired token, try to refresh it", parsed_response)
+            raise ExpiredTokenError("Expired token, try to refresh it", error)
 
         if response.status_code == 500:
-            raise InternalServerError("Internal server error", parsed_response)
+            raise InternalServerError("Internal server error", error)
 
-        raise SageIntacctSDKError("Error: {0}".format(parsed_response))
+        raise SageIntacctSDKError("Error: {0}".format(error))
 
     def support_id_msg(self, errormessages) -> Union[List, Dict]:
         """
@@ -240,9 +250,9 @@ class SageIntacctSDK:
         Returns:
             A response from the _post_request (dict).
         """
-
         key = next(iter(data))
         object_type = data[key]["object"]
+        logging.debug(f"object_type: {object_type} - payload: {data}")
 
         # Remove object entry if unnecessary
         if "create" in key:
