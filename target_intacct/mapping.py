@@ -100,7 +100,7 @@ class UnifiedMapping:
                 payload_return[key] = payload[key]
         return payload_return
 
-    def prepare_attachment_payload(self, data):
+    def prepare_attachment_payload(self, data, action="create", existing_attachments=[]):
         attachments = data.get("attachments", [])
         invoice_number = data.get("invoiceNumber")
 
@@ -116,10 +116,10 @@ class UnifiedMapping:
             "attachmentname": att.get("name"), 
             "attachmenttype": "pdf",
             "attachmentdata": att.get("data"),
-            }} for att in attachments]
+            }} for att in attachments if att.get("name") not in existing_attachments]
         
         payload = {
-            "create_supdoc": {
+            f"{action}_supdoc": {
                 "object": "supdoc",
                 "supdocid": invoice_number[-20:], #only 20 chars allowed
                 "supdocname": invoice_number,
