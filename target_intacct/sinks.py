@@ -142,6 +142,48 @@ class intacctSink(RecordSink):
         for i in array:
             array_[i[key]] = i[value]
         return array_
+    
+    def post_attachments(self, payload, record):
+        mapping = UnifiedMapping()
+        #prepare attachment payload
+        att_payload = mapping.prepare_attachment_payload(record)
+        if att_payload:
+            att_id = att_payload["create_supdoc"]["supdocid"]
+            #1. create folder
+            #check if the folder exists:
+            check_folder = {"get":{"@object": "supdocfolder", "@key": att_id}}
+            folder = self.client.format_and_send_request(check_folder)
+
+            if folder.get("data", {}).get("supdocfolder"):
+                self.logger.info(f"Folder with name {att_id} already exists")
+            else:
+                # if folder doesn't exist create folder
+                folder_payload = {"create_supdocfolder": {"supdocfoldername": att_id, "object": "supdocfolder"}}
+                self.client.format_and_send_request(folder_payload)
+            #2. post attachments
+            #check if supdoc exists
+            check_supdoc = {"get":{"@object": "supdoc", "@key": att_id}}
+            supdoc = self.client.format_and_send_request(check_supdoc)
+
+            #updating existing supdoc
+            supdoc = supdoc.get("data", {}).get("supdoc")
+            if supdoc:
+                self.logger.info(f"supdoc with id {att_id} already exists, updating existing supdoc")
+                attachments = supdoc.get("attachments")
+                #getting a list of existing attachments to avoid duplicates
+                existing_attachments = []
+                if isinstance(attachments, dict):
+                    if attachments.get("attachment", {}).get("attachmentname"):
+                        existing_attachments.append(attachments.get("attachment", {}).get("attachmentname"))
+                elif isinstance(attachments, list):
+                    existing_attachments = [att.get("attachment",{}).get("attachmentname") for att in attachments]
+                #update att_payload to 
+                att_payload = mapping.prepare_attachment_payload(record, "update", existing_attachments)
+            #send attachments
+            if att_payload:
+                self.client.format_and_send_request(att_payload)
+            return att_id
+        return None
 
     def purchase_invoices_upload(self, record):
 
@@ -149,15 +191,10 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
 
-        #prepare attachment payload
-        att_payload = mapping.prepare_attachment_payload(record)
-        if att_payload:
-            #create folder
-            folder_payload = {"create_supdocfolder": {"supdocfoldername": payload.get("RECORDID"), "object": "supdocfolder"}}
-            self.client.format_and_send_request(folder_payload)
-            # post attachments
-            self.client.format_and_send_request(att_payload)
-            payload["SUPDOCID"] = att_payload["create_supdoc"]["supdocid"]
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
 
         # Get the matching values for the payload :
         # Matching "VENDORNAME" -> "VENDORID"

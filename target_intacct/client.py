@@ -251,7 +251,10 @@ class SageIntacctSDK:
             A response from the _post_request (dict).
         """
         key = next(iter(data))
-        object_type = data[key]["object"]
+        try:
+            object_type = data[key]["object"]
+        except:
+            object_type = data[key]["@object"]
         logging.debug(f"object_type: {object_type} - payload: {data}")
 
         # Remove object entry if unnecessary
