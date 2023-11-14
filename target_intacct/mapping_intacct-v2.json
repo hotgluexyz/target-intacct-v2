@@ -25,7 +25,9 @@
                 "classId": "CLASSID",
                 "className": "CLASSNAME",
                 "projectId": "PROJECTID",
-                "projectName": "PROJECTNAME"
+                "projectName": "PROJECTNAME",
+                "location": "LOCATIONNAME",
+                "locationId": "LOCATIONID"
             }
         ],
         "supplierNumber": "VENDORID",

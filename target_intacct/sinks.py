@@ -204,13 +204,12 @@ class intacctSink(RecordSink):
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
-            if payload.get("LOCATIONNAME"):
+            if item.get("LOCATIONNAME"):
                 self.get_locations()
-                item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
-            
-            if payload.get("LOCATIONNAME"):
+                item["LOCATIONID"] = self.locations.get(item["LOCATIONNAME"])
+            elif payload.get("LOCATIONNAME"):
                 self.get_locations()
-                item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+                item["LOCATIONID"] = self.locations.get(payload["LOCATIONNAME"])
 
             if item.get("VENDORNAME"):
                 self.get_vendors()
