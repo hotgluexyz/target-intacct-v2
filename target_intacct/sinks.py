@@ -165,6 +165,9 @@ class intacctSink(RecordSink):
             check_supdoc = {"get":{"@object": "supdoc", "@key": att_id}}
             supdoc = self.client.format_and_send_request(check_supdoc)
 
+            if not supdoc:
+                supdoc = {}
+
             #updating existing supdoc
             supdoc = supdoc.get("data", {}).get("supdoc")
             if supdoc:
