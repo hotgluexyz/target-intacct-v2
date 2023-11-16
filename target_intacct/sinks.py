@@ -163,13 +163,11 @@ class intacctSink(RecordSink):
             #2. post attachments
             #check if supdoc exists
             check_supdoc = {"get":{"@object": "supdoc", "@key": att_id}}
-            supdoc = self.client.format_and_send_request(check_supdoc)
-
-            if not supdoc:
-                supdoc = {}
+            supdoc = self.client.format_and_send_request(check_supdoc) or dict()
+            supdoc = supdoc.get("data", {}) or dict()
 
             #updating existing supdoc
-            supdoc = supdoc.get("data", {}).get("supdoc")
+            supdoc = supdoc.get("supdoc")
             if supdoc:
                 self.logger.info(f"supdoc with id {att_id} already exists, updating existing supdoc")
                 attachments = supdoc.get("attachments")
