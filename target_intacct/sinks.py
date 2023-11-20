@@ -229,6 +229,11 @@ class intacctSink(RecordSink):
                 self.get_projects()
                 item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
                 item.pop("PROJECTNAME")
+            
+            #add custom fields to the item payload
+            custom_fields = item.pop("customFields", None)
+            if custom_fields:
+                [item.update({cf.get("name"): cf.get("value")}) for cf in custom_fields]
 
             # TODO For now the account number is set by hand.
             # item["ACCOUNTNO"] = "6220"
@@ -266,15 +271,10 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "bills", self.target_name)
 
-        #prepare attachment payload
-        att_payload = mapping.prepare_attachment_payload(record)
-        if att_payload:
-            #create folder
-            folder_payload = {"create_supdocfolder": {"supdocfoldername": payload.get("RECORDID"), "object": "supdocfolder"}}
-            self.client.format_and_send_request(folder_payload)
-            # post attachments
-            self.client.format_and_send_request(att_payload)
-            payload["SUPDOCID"] = att_payload["create_supdoc"]["supdocid"]
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
         
         #include locationid at header level
         if payload.get("LOCATIONNAME"):

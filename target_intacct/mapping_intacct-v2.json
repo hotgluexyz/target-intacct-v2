@@ -27,7 +27,8 @@
                 "projectId": "PROJECTID",
                 "projectName": "PROJECTNAME",
                 "location": "LOCATIONNAME",
-                "locationId": "LOCATIONID"
+                "locationId": "LOCATIONID",
+                "customFields": "customFields"
             }
         ],
         "supplierNumber": "VENDORID",
