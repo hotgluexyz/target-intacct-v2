@@ -61,7 +61,7 @@ class intacctSink(RecordSink):
             )
             self.vendors = self.dictify(vendors, "NAME", "VENDORID")
         return self.vendors
-    
+
     def get_classes(self):
         # Lookup for vendors
         if self.classes is None:
@@ -117,7 +117,7 @@ class intacctSink(RecordSink):
             )
             self.items = self.dictify(items, "NAME", "ITEMID")
         return self.items
-    
+
     def get_customers(self):
         # Lookup for customers
         if self.customers is None:
@@ -126,7 +126,7 @@ class intacctSink(RecordSink):
             )
             self.customers = self.dictify(customers, "NAME", "CUSTOMERID")
         return self.customers
-    
+
     def get_journal_entries(self):
         # Lookup for journal_entries
         if self.journal_entries is None:
@@ -135,14 +135,14 @@ class intacctSink(RecordSink):
             )
             self.journal_entries = self.dictify(journal_entries, "BATCH_TITLE", "RECORDNO")
         return self.journal_entries
-    
+
 
     def dictify(sefl, array, key, value):
         array_ = {}
         for i in array:
             array_[i[key]] = i[value]
         return array_
-    
+
     def post_attachments(self, payload, record):
         mapping = UnifiedMapping()
         #prepare attachment payload
@@ -178,7 +178,7 @@ class intacctSink(RecordSink):
                         existing_attachments.append(attachments.get("attachment", {}).get("attachmentname"))
                 elif isinstance(attachments, list):
                     existing_attachments = [att.get("attachment",{}).get("attachmentname") for att in attachments]
-                #update att_payload to 
+                #update att_payload to
                 att_payload = mapping.prepare_attachment_payload(record, "update", existing_attachments)
             #send attachments
             if att_payload:
@@ -216,7 +216,7 @@ class intacctSink(RecordSink):
                 self.get_vendors()
                 item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
                 item.pop("VENDORNAME")
-            
+
             if not item.get("VENDORNAME") and payload.get("VENDORNAME"):
                 item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
 
@@ -224,12 +224,12 @@ class intacctSink(RecordSink):
                 self.get_classes()
                 item["CLASSID"] = self.classes[item["CLASSNAME"]]
                 item.pop("CLASSNAME")
-            
+
             if item.get("PROJECTNAME"):
                 self.get_projects()
                 item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
                 item.pop("PROJECTNAME")
-            
+
             #add custom fields to the item payload
             custom_fields = item.pop("customFields", None)
             if custom_fields:
@@ -265,7 +265,7 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
-    
+
     def bills_upload(self, record):
         # Format data
         mapping = UnifiedMapping()
@@ -275,7 +275,7 @@ class intacctSink(RecordSink):
         supdoc_id = self.post_attachments(payload, record)
         if supdoc_id:
             payload["SUPDOCID"] = supdoc_id
-        
+
         #include locationid at header level
         if payload.get("LOCATIONNAME"):
             self.get_locations()
@@ -291,7 +291,7 @@ class intacctSink(RecordSink):
         if payload.get("VENDORNUMBER"):
             self.get_vendors()
             payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
-        
+
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
             if payload.get("VENDORNAME"):
                 self.get_vendors()
@@ -306,7 +306,7 @@ class intacctSink(RecordSink):
                 self.get_classes()
                 item["CLASSID"] = self.classes[item["CLASSNAME"]]
                 item.pop("CLASSNAME")
-            
+
             if item.get("PROJECTNAME"):
                 self.get_projects()
                 item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
@@ -339,7 +339,6 @@ class intacctSink(RecordSink):
 
         self.client.format_and_send_request(data)
 
-
     def journal_entries_upload(self, record):
 
         # Format data
@@ -348,7 +347,7 @@ class intacctSink(RecordSink):
 
         if payload.get("JOURNAL"):
             payload["BATCH_TITLE"] = payload.get("JOURNAL")
-        
+
         if "APBILLITEMS" in payload.keys():
             payload.pop("APBILLITEMS")
 
@@ -386,23 +385,22 @@ class intacctSink(RecordSink):
             if item.get("CLASSNAME"):
                 item["CLASSID"] = self.classes.get(item["CLASSNAME"])
                 item.pop("CLASSNAME")
-            
+
             self.get_customers()
             if item.get("CUSTOMERNAME"):
                 item["CUSTOMERID"] = self.customers.get(item["CUSTOMERNAME"])
                 item.pop("CUSTOMERNAME")
-            
+
             self.get_vendors()
             if item.get("VENDORNAME"):
                 item["VENDORID"] = self.vendors.get(item["VENDORNAME"])
                 item.pop("VENDORNAME")
 
         payload["BATCH_DATE"] = payload["BATCH_DATE"].split("T")[0]
-        
+
         data = {"create": {"object": "GLBATCH", "GLBATCH": payload}}
 
         self.client.format_and_send_request(data)
-
 
     def suppliers_upload(self, record):
         # Format data
@@ -420,6 +418,31 @@ class intacctSink(RecordSink):
             not payload["NAME"] in self.vendors.keys()
         ):
             self.client.format_and_send_request(data)
+
+    def apadjustment_upload(self, record):
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(
+            record, "apadjustment", self.target_name
+        )
+        if payload.get("VENDORNAME"):
+            self.get_vendors()
+            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+
+        for item in payload.get("APADJUSTMENTITEMS").get("LINEITEM", []):
+            if item.get("ACCOUNTLABEL") and not item.get("GLACCOUNTNO"):
+                self.get_accounts()
+                item["GLACCOUNTNO"] = self.accounts.get(item["ACCOUNTLABEL"])
+                item.pop("ACCOUNTLABEL")
+            else:
+                item.pop("ACCOUNTLABEL")
+
+            if item.get("LOCATIONNAME"):
+                self.get_locations()
+                item["LOCATIONID"] = self.locations.get(item["LOCATIONNAME"])
+
+        data = {"create": {"object": "apadjustment", "APADJUSTMENT": payload}}
+        self.client.format_and_send_request(data)
 
     def get_banks(self):
         # Lookup for banks
@@ -492,3 +515,5 @@ class intacctSink(RecordSink):
             self.journal_entries_upload(record)
         if self.stream_name == "PayBill":
             self.pay_bill(record)
+        if self.stream_name == "APAdjustment":
+            self.apadjustment_upload(record)

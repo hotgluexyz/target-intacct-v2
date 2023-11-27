@@ -63,7 +63,6 @@ class UnifiedMapping:
         payload = {}
         payload_return = {}
         lookup_keys = mapping.keys()
-        payload["APBILLITEMS"] = {"APBILLITEM": []}
         for lookup_key in lookup_keys:
             if (
                 lookup_key == "address"
@@ -73,7 +72,14 @@ class UnifiedMapping:
                 payload = self.map_address(
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )
+            if lookup_key == "lineItems" and endpoint == "apadjustment":
+                payload["APADJUSTMENTITEMS"] = {"LINEITEM": []}
+                lines = self.map_lineItems(
+                    record.get(lookup_key, []), mapping[lookup_key]
+                )
+                payload["APADJUSTMENTITEMS"]["LINEITEM"] = payload["APADJUSTMENTITEMS"]["LINEITEM"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
+                payload["APBILLITEMS"] = {"APBILLITEM": []}
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
@@ -113,11 +119,11 @@ class UnifiedMapping:
                 attachment["data"] = data
 
         attachment_payload = [{"attachment":{
-            "attachmentname": att.get("name"), 
+            "attachmentname": att.get("name"),
             "attachmenttype": "pdf",
             "attachmentdata": att.get("data"),
             }} for att in attachments if att.get("name") not in existing_attachments]
-        
+
         payload = {
             f"{action}_supdoc": {
                 "object": "supdoc",
