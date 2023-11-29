@@ -70,7 +70,7 @@
         "createdAt": "WHENCREATED",
         "issueDate": "WHENPOSTED",
         "lineItems": [
-            {   
+            {
                 "taxCode": null,
                 "quantity": null,
                 "projectId": "PROJECTID",
@@ -155,5 +155,18 @@
             "number": "PHONE1",
             "type": null
         }
+    },
+    "apadjustment": {
+        "vendorId": "VENDORID",
+        "transactionDate": "DATECREATED",
+        "billNumber": "BILLNO",
+        "description": "DESCRIPTION",
+        "adjustmentNumber": "ADJUSTMENTNO",
+        "currency": "CURRENCY",
+        "lineItems": [{
+            "amount": "AMOUNT",
+            "accountName": "ACCOUNTLABEL",
+            "accountNumber": "GLACCOUNTNO"
+        }]
     }
 }
