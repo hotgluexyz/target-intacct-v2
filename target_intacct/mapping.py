@@ -72,7 +72,7 @@ class UnifiedMapping:
                 payload = self.map_address(
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )
-            if lookup_key == "lineItems" and endpoint == "apadjustment":
+            elif lookup_key == "lineItems" and endpoint == "apadjustment":
                 payload["APADJUSTMENTITEMS"] = {"LINEITEM": []}
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
