@@ -2,6 +2,7 @@ import json
 import os
 import requests
 import base64
+import ast
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
 
@@ -20,6 +21,11 @@ class UnifiedMapping:
 
         return content
 
+    def parse_objs(self, obj):
+        try:
+            return json.loads(obj)
+        except:
+            return ast.literal_eval(obj)
     # Microsoft dynamics address mapping
     def map_address(self, address, address_mapping, payload):
         if isinstance(address, str):
@@ -109,6 +115,9 @@ class UnifiedMapping:
     def prepare_attachment_payload(self, data, action="create", existing_attachments=[]):
         attachments = data.get("attachments", [])
         invoice_number = data.get("invoiceNumber")
+
+        if isinstance(attachments, str):
+            attachments = self.parse_objs(attachments)
 
         for attachment in attachments:
             url = attachment.get("url")
