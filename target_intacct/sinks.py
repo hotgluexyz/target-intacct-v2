@@ -201,7 +201,13 @@ class intacctSink(RecordSink):
         # Matching "VENDORNAME" -> "VENDORID"
         if payload.get("VENDORNAME"):
             self.get_vendors()
-            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+            vendor_name = self.vendors.get(payload["VENDORNAME"])
+            if vendor_name:
+                payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+            else:
+                raise Exception(
+                    f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
+                )
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
@@ -285,12 +291,24 @@ class intacctSink(RecordSink):
         #include vendorname and vendornumber
         if payload.get("VENDORNAME"):
             self.get_vendors()
-            vendor_dict = {"VENDORID": self.vendors[payload["VENDORNAME"]]}
-            payload = {**vendor_dict, **payload}
+            vendor_name = self.vendors.get(payload["VENDORNAME"])
+            if vendor_name:
+                vendor_dict = {"VENDORID": self.vendors[payload["VENDORNAME"]]}
+                payload = {**vendor_dict, **payload}
+            else:
+                raise Exception(
+                    f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
+                )
 
         if payload.get("VENDORNUMBER"):
             self.get_vendors()
-            payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
+            vendor_id = self.vendors.get(payload["VENDORID"])
+            if vendor_id:
+                payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
+            else:
+                raise Exception(
+                    f"ERROR: VENDORNUMBER {payload['VENDORID']} not found for this account."
+                )
 
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
             if payload.get("VENDORNAME"):
