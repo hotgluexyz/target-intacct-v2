@@ -136,7 +136,7 @@ class UnifiedMapping:
         payload = {
             f"{action}_supdoc": {
                 "object": "supdoc",
-                "supdocid": invoice_number[-20:], #only 20 chars allowed
+                "supdocid": str(invoice_number)[-20:], #only 20 chars allowed
                 "supdocname": invoice_number,
                 "supdocfoldername": invoice_number,
                 "attachments": attachment_payload
