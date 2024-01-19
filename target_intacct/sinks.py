@@ -214,10 +214,18 @@ class intacctSink(RecordSink):
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
             if item.get("LOCATIONNAME"):
                 self.get_locations()
-                item["LOCATIONID"] = self.locations.get(item["LOCATIONNAME"])
+                location = self.locations.get(item["LOCATIONNAME"])
+                if location:
+                    item["LOCATIONID"] = self.locations.get(payload["LOCATIONNAME"])
+                else:
+                    raise Exception(f"Location '{payload['LOCATIONNAME']}' does not exist. Did you mean any of these: {list(self.locations.keys())}?")
             elif payload.get("LOCATIONNAME"):
                 self.get_locations()
-                item["LOCATIONID"] = self.locations.get(payload["LOCATIONNAME"])
+                location = self.locations.get(payload["LOCATIONNAME"])
+                if location:
+                    item["LOCATIONID"] = self.locations.get(payload["LOCATIONNAME"])
+                else:
+                    raise Exception(f"Location '{payload['LOCATIONNAME']}' does not exist. Did you mean any of these: {list(self.locations.keys())}?")
 
             if item.get("VENDORNAME"):
                 self.get_vendors()
