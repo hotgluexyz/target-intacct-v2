@@ -191,6 +191,7 @@ class SageIntacctSDK:
         if response.status_code == 500:
             raise InternalServerError("Internal server error", error)
 
+        logging.info("Error while sending request data: {0}".format(response.request.body))
         raise SageIntacctSDKError("Error: {0}".format(error))
 
     def support_id_msg(self, errormessages) -> Union[List, Dict]:
@@ -240,7 +241,7 @@ class SageIntacctSDK:
 
         return errormessages
 
-    def format_and_send_request(self, data: Dict) -> Union[List, Dict]:
+    def format_and_send_request(self, data: Dict, use_payload=False) -> Union[List, Dict]:
         """
         Format data accordingly to convert them to xml.
 
@@ -263,6 +264,10 @@ class SageIntacctSDK:
 
         timestamp = dt.datetime.now()
 
+        payload_data = data[key]
+        if use_payload:
+            payload_data = data[key][object_type.upper()]
+
         dict_body = {
             "request": {
                 "control": {
@@ -276,7 +281,7 @@ class SageIntacctSDK:
                 "operation": {
                     "authentication": {"sessionid": self.__session_id},
                     "content": {
-                        "function": {"@controlid": str(uuid.uuid4()), key: data[key]}
+                        "function": {"@controlid": str(uuid.uuid4()), key: payload_data}
                     },
                 },
             }
