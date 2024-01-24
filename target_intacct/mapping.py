@@ -38,8 +38,12 @@ class UnifiedMapping:
 
     def map_lineItems(self, line_items, line_items_mapping):
         line_items_ = []
+        if isinstance(line_items, dict):
+            line_items = [line_items]
+
         if isinstance(line_items, str):
             line_items = json.loads(line_items)
+
         if isinstance(line_items, list):
             if len(line_items) > 0:
                 line_items_ = []
@@ -79,11 +83,16 @@ class UnifiedMapping:
                     record.get(lookup_key, []), mapping[lookup_key], payload
                 )
             elif lookup_key == "lineItems" and endpoint == "apadjustment":
-                payload["APADJUSTMENTITEMS"] = {"LINEITEM": []}
+                payload["apadjustmentitems"] = {"lineitem": []}
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
-                payload["APADJUSTMENTITEMS"]["LINEITEM"] = payload["APADJUSTMENTITEMS"]["LINEITEM"] + lines
+                lines = [{
+                    "glaccountno": line.get("glaccountno"),
+                    "accountlabel": line.get("accountlabel"),
+                    "amount": line.get("amount"),
+                } for line in lines]
+                payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
                 payload["APBILLITEMS"] = {"APBILLITEM": []}
                 lines = self.map_lineItems(

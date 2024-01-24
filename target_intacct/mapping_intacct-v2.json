@@ -157,16 +157,16 @@
         }
     },
     "apadjustment": {
-        "vendorId": "VENDORID",
-        "transactionDate": "DATECREATED",
-        "billNumber": "BILLNO",
-        "description": "DESCRIPTION",
-        "adjustmentNumber": "ADJUSTMENTNO",
-        "currency": "CURRENCY",
+        "vendorId": "vendorid",
+        "transactionDate": "datecreated",
+        "billNumber": "billno",
+        "description": "description",
+        "currency": "currency",
+        "adjustmentNumber": "adjustmentno",
         "lineItems": [{
-            "amount": "AMOUNT",
-            "accountName": "ACCOUNTLABEL",
-            "accountNumber": "GLACCOUNTNO"
+            "accountNumber": "glaccountno",
+            "accountName": "accountlabel",
+            "amount": "amount"
         }]
     }
 }

@@ -458,24 +458,42 @@ class intacctSink(RecordSink):
         payload = mapping.prepare_payload(
             record, "apadjustment", self.target_name
         )
-        if payload.get("VENDORNAME"):
+
+        if payload.get("vendorname"):
             self.get_vendors()
-            payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+            payload["vendorid"] = self.vendors[payload["vendorname"]]
 
-        for item in payload.get("APADJUSTMENTITEMS").get("LINEITEM", []):
-            if item.get("ACCOUNTLABEL") and not item.get("GLACCOUNTNO"):
+        for item in payload.get("apadjustmentitems").get("lineitem", []):
+            if item.get("accountlabel") and not item.get("glaccountno"):
                 self.get_accounts()
-                item["GLACCOUNTNO"] = self.accounts.get(item["ACCOUNTLABEL"])
-                item.pop("ACCOUNTLABEL")
+                item["glaccountno"] = self.accounts.get(item["accountlabel"])
+                item.pop("accountlabel")
             else:
-                item.pop("ACCOUNTLABEL")
+                try:
+                    item.pop("accountlabel")
+                except:
+                    pass
 
-            if item.get("LOCATIONNAME"):
+            if item.get("locationname"):
                 self.get_locations()
-                item["LOCATIONID"] = self.locations.get(item["LOCATIONNAME"])
+                item["locationid"] = self.locations.get(item["locationname"])
 
-        data = {"create": {"object": "apadjustment", "APADJUSTMENT": payload}}
-        self.client.format_and_send_request(data)
+        if payload.get("datecreated"):
+            payload["datecreated"] = {
+                "year": payload["datecreated"].split("-")[0],
+                "month": payload["datecreated"].split("-")[1],
+                "day": payload["datecreated"].split("-")[2],
+            }
+
+        ordered_payload = {}
+        for key in ["vendorid", "datecreated", "adjustmentno", "billno", "description", "currency", "exchratetype", "apadjustmentitems"]:
+            if key in payload.keys():
+                ordered_payload[key] = payload[key]
+            elif key == "exchratetype" and key not in payload.keys():
+                ordered_payload[key] = "Intacct Daily Rate"
+
+        data = {"create_apadjustment": {"object": "apadjustment", "APADJUSTMENT": ordered_payload}}
+        self.client.format_and_send_request(data, use_payload=True)
 
     def get_banks(self):
         # Lookup for banks
