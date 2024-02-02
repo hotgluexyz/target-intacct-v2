@@ -477,6 +477,39 @@ class intacctSink(RecordSink):
             if item.get("locationname"):
                 self.get_locations()
                 item["locationid"] = self.locations.get(item["locationname"])
+            
+            if item.get("vendorname"):
+                if not item.get("vendorid"):
+                    self.get_vendors()
+                    try:
+                        item["vendorid"] = self.vendors[item["vendorname"]]
+                    except: 
+                        raise Exception(
+                        f"ERROR: vendorname {item['vendorname']} not found for this account."
+                    )
+                item.pop("vendorname")
+
+            if item.get("projectname"):
+                if not item.get("projectid"):
+                    self.get_projects()
+                    try:
+                        item["projectid"] = self.projects[item["projectname"]]
+                    except: 
+                        raise Exception(
+                        f"ERROR: projectname {item['projectname']} not found for this account."
+                    )
+                item.pop("projectname")
+            
+            if item.get("locationname"):
+                if not item.get("locationid"):
+                    self.get_locations()
+                    try:
+                        item["locationid"] = self.locations[item["locationname"]]
+                    except: 
+                        raise Exception(
+                        f"ERROR: locationname {item['locationname']} not found for this account."
+                    )
+                item.pop("locationname")
 
         if payload.get("datecreated"):
             payload["datecreated"] = {
