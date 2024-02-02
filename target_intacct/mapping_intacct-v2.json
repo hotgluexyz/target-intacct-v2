@@ -166,7 +166,14 @@
         "lineItems": [{
             "accountNumber": "glaccountno",
             "accountName": "accountlabel",
-            "amount": "amount"
+            "amount": "amount",
+            "memo": "memo",
+            "vendorId": "vendorid",
+            "vendorName": "vendorname",
+            "projectId": "projectid",
+            "projectName": "projectname",
+            "locationName": "locationname",
+            "locationId": "locationid"
         }]
     }
 }
