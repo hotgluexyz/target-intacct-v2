@@ -92,8 +92,8 @@ class UnifiedMapping:
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
-                # put these keys at the top because intacct requires them in order
-                first_keys = ["glaccountno", "accountlabel", "amount"]
+                # order payload fields because intacct requires them in an specific order
+                first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "projectid", "vendorid"]
                 lines = [self.order_dicts(line, first_keys) for line in lines]
                 payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
