@@ -139,14 +139,13 @@ class SageIntacctSDK:
         parsed_xml = xmltodict.parse(response.text)
         parsed_response = json.loads(json.dumps(parsed_xml))
 
+        logging.debug(f"response {parsed_response} with status code {response.status_code} for request to {response.url} with body {body}")
         #getting the errors
         res = parsed_response["response"]
         if res.get("errormessage"):
             error = res.get("errormessage")
         elif res.get("operation"):
             error = res.get("operation").get("result", {}).get("errormessage", {})
-
-        logging.debug(f"response: {parsed_response}")
 
         if response.status_code == 200:
             if parsed_response["response"]["control"]["status"] == "success":

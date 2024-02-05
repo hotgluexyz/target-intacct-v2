@@ -66,6 +66,11 @@ class UnifiedMapping:
             payload[key] = val
         return payload
 
+    def order_dicts(self, dict, keys_order):
+        new_dict = {key: dict.get(key) for key in keys_order if key in dict}
+        new_dict.update({key: dict[key] for key in dict if key not in keys_order})
+        return new_dict
+
     def prepare_payload(self, record, endpoint="invoice", target="intacct"):
         mapping = self.read_json_file(f"mapping_{target}.json")
         ignore = mapping["ignore"]
@@ -87,6 +92,9 @@ class UnifiedMapping:
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
+                # put these keys at the top because intacct requires them in order
+                first_keys = ["glaccountno", "accountlabel", "amount"]
+                lines = [self.order_dicts(line, first_keys) for line in lines]
                 payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
                 payload["APBILLITEMS"] = {"APBILLITEM": []}
