@@ -67,7 +67,7 @@ class UnifiedMapping:
         return payload
 
     def order_dicts(self, dict, keys_order):
-        new_dict = {key: dict.get(key) for key in keys_order if key in dict}
+        new_dict = {key: dict.get(key, None) for key in keys_order if key in dict}
         new_dict.update({key: dict[key] for key in dict if key not in keys_order})
         return new_dict
 
@@ -92,9 +92,6 @@ class UnifiedMapping:
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
-                # order payload fields because intacct requires them in an specific order
-                first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "projectid", "vendorid"]
-                lines = [self.order_dicts(line, first_keys) for line in lines]
                 payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
                 payload["APBILLITEMS"] = {"APBILLITEM": []}
