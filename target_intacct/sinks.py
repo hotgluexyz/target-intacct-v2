@@ -13,7 +13,6 @@ from target_intacct.mapping import UnifiedMapping
 from .client import SageIntacctSDK, get_client
 from .const import DEFAULT_API_URL, KEY_PROPERTIES, REQUIRED_CONFIG_KEYS
 import re
-import mapping
 # import xmltodict
 
 
@@ -514,7 +513,7 @@ class intacctSink(RecordSink):
         # order line fields
         lines = payload.get("apadjustmentitems").get("lineitem", [])
         first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "projectid", "vendorid"]
-        payload["apadjustmentitems"]["lineitem"] = [mapping.order_dicts(line, first_keys) for line in lines]
+        payload["apadjustmentitems"]["lineitem"] = [UnifiedMapping().order_dicts(line, first_keys) for line in lines]
 
         if payload.get("datecreated"):
             payload["datecreated"] = {
