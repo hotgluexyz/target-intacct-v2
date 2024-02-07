@@ -8,7 +8,8 @@ __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file
 
 
 class UnifiedMapping:
-    def __init__(self) -> None:
+    def __init__(self, config=None) -> None:
+        self.config = config
         pass
 
     def read_json_file(self, filename):
@@ -121,6 +122,12 @@ class UnifiedMapping:
                 payload_return[key] = payload[key]
         return payload_return
 
+    def get_attachment_type(self, att_name):
+        try:
+            return att_name.split(".")[1]
+        except:
+            return "pdf"
+
     def prepare_attachment_payload(self, data, action="create", existing_attachments=[]):
         attachments = data.get("attachments", [])
         invoice_number = data.get("invoiceNumber")
@@ -135,10 +142,15 @@ class UnifiedMapping:
                 data = base64.b64encode(response.content)
                 data = data.decode()
                 attachment["data"] = data
+            else:
+                att_path = f"{self.config.get('input_path')}/{attachment.get('id')}_{attachment.get('name')}"
+                with open(att_path, "rb") as attach_file:
+                    data = base64.b64encode(attach_file.read()).decode()
+                    attachment["data"] = data
 
         attachment_payload = [{"attachment":{
             "attachmentname": att.get("name"),
-            "attachmenttype": "pdf",
+            "attachmenttype": self.get_attachment_type(att.get("name")),
             "attachmentdata": att.get("data"),
             }} for att in attachments if att.get("name") not in existing_attachments]
 

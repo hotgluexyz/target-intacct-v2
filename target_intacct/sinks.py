@@ -144,7 +144,7 @@ class intacctSink(RecordSink):
         return array_
 
     def post_attachments(self, payload, record):
-        mapping = UnifiedMapping()
+        mapping = UnifiedMapping(config=self.config)
         #prepare attachment payload
         att_payload = mapping.prepare_attachment_payload(record)
         if att_payload:
