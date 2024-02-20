@@ -133,7 +133,7 @@ class SageIntacctSDK:
 
         api_headers = {"content-type": "application/xml"}
         api_headers.update(self.__headers)
-        body = xmltodict.unparse(dict_body)
+        body = xmltodict.unparse(dict_body).encode('utf-8')
         response = requests.post(api_url, headers=api_headers, data=body)
 
         parsed_xml = xmltodict.parse(response.text)
