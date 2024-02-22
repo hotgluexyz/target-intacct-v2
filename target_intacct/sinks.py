@@ -192,6 +192,9 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
 
+        # Check if the invoice exists
+        bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
+
         #send attachments
         supdoc_id = self.post_attachments(payload, record)
         if supdoc_id:
@@ -276,7 +279,11 @@ class intacctSink(RecordSink):
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
-        data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+        if bill:
+            payload.update(bill)
+            data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
+        else:
+            data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
 

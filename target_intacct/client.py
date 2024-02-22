@@ -258,7 +258,7 @@ class SageIntacctSDK:
         logging.debug(f"object_type: {object_type} - payload: {data}")
 
         # Remove object entry if unnecessary
-        if "create" in key:
+        if key in ["create", "update"]:
             data[key].pop("object", None)
 
         timestamp = dt.datetime.now()
@@ -289,7 +289,7 @@ class SageIntacctSDK:
             response = self._post_request(dict_body, self.__api_url)
         return response["result"]
 
-    def get_entity(self, *, object_type: str, fields: List[str]) -> List[Dict]:
+    def get_entity(self, *, object_type: str, fields: List[str], filter={}) -> List[Dict]:
         """
         Get multiple objects of a single type from Sage Intacct.
 
@@ -307,7 +307,15 @@ class SageIntacctSDK:
             }
         }
 
+        if filter:
+            get_count["query"].update(filter)
+
         response = self.format_and_send_request(get_count)
+
+        if filter:
+            response = response["data"].get(INTACCT_OBJECTS[object_type])
+            return response
+
         count = int(response["data"]["@totalcount"])
         pagesize = 1000
         offset = 0
