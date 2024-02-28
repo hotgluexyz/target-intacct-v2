@@ -173,7 +173,11 @@
             "projectId": "projectid",
             "projectName": "projectname",
             "locationName": "locationname",
-            "locationId": "locationid"
+            "locationId": "locationid",
+            "classId": "classid",
+            "className": "classname",
+            "departmentId": "departmentid",
+            "departmentName": "departmentname"
         }]
     }
 }
