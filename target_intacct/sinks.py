@@ -479,10 +479,6 @@ class intacctSink(RecordSink):
                     item.pop("accountlabel")
                 except:
                     pass
-
-            if item.get("locationname"):
-                self.get_locations()
-                item["locationid"] = self.locations.get(item["locationname"])
             
             if item.get("vendorname"):
                 if not item.get("vendorid"):
@@ -517,9 +513,31 @@ class intacctSink(RecordSink):
                     )
                 item.pop("locationname")
             
+            if item.get("classname"):
+                if not item.get("classid"):
+                    self.get_classes()
+                    try:
+                        item["classid"] = self.classes[item["classname"]]
+                    except: 
+                        raise Exception(
+                        f"ERROR: classname {item['classname']} not found for this account."
+                    )
+                item.pop("classname")
+            
+            if item.get("departmentname"):
+                if not item.get("departmentid"):
+                    self.get_departments()
+                    try:
+                        item["departmentid"] = self.departments[item["departmentname"]]
+                    except: 
+                        raise Exception(
+                        f"ERROR: departmentname {item['departmentname']} not found for this account."
+                    )
+                item.pop("departmentname")
+            
         # order line fields
         lines = payload.get("apadjustmentitems").get("lineitem", [])
-        first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "projectid", "vendorid"]
+        first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "departmentid", "projectid", "vendorid", "classid"]
         payload["apadjustmentitems"]["lineitem"] = [UnifiedMapping().order_dicts(line, first_keys) for line in lines]
 
         if payload.get("datecreated"):
