@@ -50,6 +50,8 @@ class SageIntacctSDK:
         user_id: str,
         user_password: str,
         headers: Dict,
+        use_locations: bool,
+        location_id: str
     ):
         self.__api_url = api_url
         self.__company_id = company_id
@@ -58,6 +60,8 @@ class SageIntacctSDK:
         self.__user_id = user_id
         self.__user_password = user_password
         self.__headers = headers
+        self.__use_locations = use_locations
+        self.__location_id = location_id
 
         """
         Initialize connection to Sage Intacct
@@ -72,13 +76,22 @@ class SageIntacctSDK:
             user_id=self.__user_id,
             company_id=self.__company_id,
             user_password=self.__user_password,
+            location_id=self.__location_id
         )
 
-    def _set_session_id(self, user_id: str, company_id: str, user_password: str):
+    def _set_session_id(self, user_id: str, company_id: str, user_password: str, location_id = None):
         """
         Sets the session id for APIs
         """
-
+        login = {
+                    "userid": user_id,
+                    "companyid": company_id,
+                    "password": user_password,
+                }
+        
+        if self.__use_locations and location_id:
+            login["locationid"] = location_id
+        
         timestamp = dt.datetime.now()
         dict_body = {
             "request": {
@@ -92,11 +105,7 @@ class SageIntacctSDK:
                 },
                 "operation": {
                     "authentication": {
-                        "login": {
-                            "userid": user_id,
-                            "companyid": company_id,
-                            "password": user_password,
-                        }
+                        "login": login
                     },
                     "content": {
                         "function": {
@@ -139,7 +148,11 @@ class SageIntacctSDK:
         parsed_xml = xmltodict.parse(response.text)
         parsed_response = json.loads(json.dumps(parsed_xml))
 
-        logging.info(f"response {parsed_response} with status code {response.status_code} for request to {response.url}")
+        if "attachmentdata" in str(body):
+            logging.info(f"response with status code {response.status_code} for request to {response.url}")
+        else:
+            logging.info(f"response {parsed_response} with status code {response.status_code} for request to {response.url}")
+
         #getting the errors
         res = parsed_response["response"]
         if res.get("errormessage"):
@@ -430,6 +443,8 @@ def get_client(
     user_id: str,
     user_password: str,
     headers: Dict,
+    use_locations: bool,
+    location_id: str
 ) -> SageIntacctSDK:
     """
     Initializes and returns a SageIntacctSDK object.
@@ -442,6 +457,8 @@ def get_client(
         user_id=user_id,
         user_password=user_password,
         headers=headers,
+        use_locations=use_locations,
+        location_id=location_id
     )
 
     return connection
