@@ -4,6 +4,7 @@
     ],
     "purchase_invoices":{
         "invoiceNumber": "RECORDID",
+        "number": "DOCNUMBER",
         "lineItems": [
             {
                 "productId": "ITEMID",
@@ -144,6 +145,8 @@
     "account_payable_vendors": {
         "vendorNumber": "VENDORID",
         "vendorName": "NAME",
+        "currency": "CURRENCY",
+        "note": "COMMENTS",
         "addresses": {
             "line1": "ADDRESS1",
             "city": "CITY",
