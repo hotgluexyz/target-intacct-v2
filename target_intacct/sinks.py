@@ -195,7 +195,9 @@ class intacctSink(RecordSink):
         payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
 
         # Check if the invoice exists
-        bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
+        bill = None
+        if record.get("RECORDID"):
+            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
 
         #send attachments
         supdoc_id = self.post_attachments(payload, record)
