@@ -145,13 +145,16 @@ class SageIntacctSDK:
         body = xmltodict.unparse(dict_body).encode('utf-8')
         response = requests.post(api_url, headers=api_headers, data=body)
 
+        if not "attachmentdata" in str(body):
+            logging.info(f"Raw response {response.text} with status code {response.status_code}")
+
         parsed_xml = xmltodict.parse(response.text)
         parsed_response = json.loads(json.dumps(parsed_xml))
 
         if "attachmentdata" in str(body):
             logging.info(f"response with status code {response.status_code} for request to {response.url}")
         else:
-            logging.info(f"response {parsed_response} with status code {response.status_code} for request to {response.url}")
+            logging.info(f"parsed response {parsed_response} with status code {response.status_code} for request to {response.url}")
 
         #getting the errors
         res = parsed_response["response"]
@@ -268,7 +271,7 @@ class SageIntacctSDK:
             object_type = data[key]["object"]
         except:
             object_type = data[key]["@object"]
-        logging.debug(f"object_type: {object_type} - payload: {data}")
+        logging.info(f"Creating request with object_type: {object_type} and action {data[key]}")
 
         # Remove object entry if unnecessary
         if "create" in key or key in ["create", "update"]:
