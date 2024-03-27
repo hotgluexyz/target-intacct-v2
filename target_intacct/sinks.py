@@ -222,7 +222,7 @@ class intacctSink(RecordSink):
                 self.get_locations()
                 location = self.locations.get(item["LOCATIONNAME"])
                 if location:
-                    item["LOCATIONID"] = self.locations.get(payload["LOCATIONNAME"])
+                    item["LOCATIONID"] = self.locations.get(item["LOCATIONNAME"])
                 else:
                     raise Exception(f"Location '{payload['LOCATIONNAME']}' does not exist. Did you mean any of these: {list(self.locations.keys())}?")
             elif payload.get("LOCATIONNAME"):
