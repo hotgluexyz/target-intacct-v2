@@ -196,7 +196,7 @@ class intacctSink(RecordSink):
 
         # Check if the invoice exists
         bill = None
-        if record.get("RECORDID"):
+        if payload.get("RECORDID"):
             bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
 
         #send attachments
