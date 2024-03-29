@@ -40,7 +40,7 @@ class intacctSink(RecordSink):
             headers={"User-Agent": target.config["user_agent"]}
             if "user_agent" in target.config
             else {},
-            use_locations=target.config.get("use_locations", False),
+            use_locations=target.config.get("use_locations", False) and self.stream_name != "Suppliers",
             location_id=target.config.get("location_id")
         )
 
