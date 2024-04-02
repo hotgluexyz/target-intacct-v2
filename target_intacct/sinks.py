@@ -296,6 +296,10 @@ class intacctSink(RecordSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "bills", self.target_name)
 
+        bill = None
+        if payload.get("RECORDID"):
+            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
+
         #send attachments
         supdoc_id = self.post_attachments(payload, record)
         if supdoc_id:
@@ -307,27 +311,25 @@ class intacctSink(RecordSink):
             payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
             payload.pop("LOCATIONNAME")
 
-        #include vendorname and vendornumber
-        if payload.get("VENDORNAME"):
+        #look for vendorName, vendorNumber and vendorId
+        if not payload.get("VENDORID"):
             self.get_vendors()
-            vendor_name = self.vendors.get(payload["VENDORNAME"])
-            if vendor_name:
-                vendor_dict = {"VENDORID": self.vendors[payload["VENDORNAME"]]}
-                payload = {**vendor_dict, **payload}
-            else:
-                raise Exception(
-                    f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
-                )
+            if payload.get("VENDORNAME"):
+                vendor_name = self.vendors.get(payload["VENDORNAME"])
+                if vendor_name:
+                    vendor_dict = {"VENDORID": self.vendors[payload["VENDORNAME"]]}
+                    payload = {**vendor_dict, **payload}
+                else:
+                    raise Exception(
+                        f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
+                    )
 
-        if payload.get("VENDORNUMBER"):
-            self.get_vendors()
-            vendor_id = self.vendors.get(payload["VENDORID"])
-            if vendor_id:
-                payload["VENDORNUMBER"] = self.vendors[payload["VENDORID"]]
-            else:
-                raise Exception(
-                    f"ERROR: VENDORNUMBER {payload['VENDORID']} not found for this account."
-                )
+            elif payload.get("VENDORNUMBER"):
+                vendor_id = payload.pop("VENDORNUMBER")
+                if vendor_id in self.vendors.values():
+                    payload["VENDORID"] = vendor_id
+                else:
+                    raise Exception(f"ERROR: VENDORID {payload['VENDORNUMBER']} not found for this account.")
 
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
             if payload.get("VENDORNAME"):
@@ -372,7 +374,11 @@ class intacctSink(RecordSink):
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
-        data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+        if bill:
+            payload.update(bill)
+            data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
+        else:
+            data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         self.client.format_and_send_request(data)
 
