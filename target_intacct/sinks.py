@@ -248,7 +248,9 @@ class intacctSink(RecordSink):
 
             if item.get("PROJECTNAME"):
                 self.get_projects()
-                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                project_id = self.projects.get(item["PROJECTNAME"])
+                if project_id:
+                    item["PROJECTID"] = project_id
                 item.pop("PROJECTNAME")
 
             #add custom fields to the item payload
