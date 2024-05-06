@@ -453,22 +453,27 @@ class intacctSink(RecordSink):
         payload = mapping.prepare_payload(
             record, "account_payable_vendors", self.target_name
         )
-        vendor_id = payload["VENDORID"]
-        valid_vendor_id = bool(re.match("^[A-Za-z0-9- ]*$", vendor_id))
+        # VENDORID is required if company does not use document sequencing
+        vendor_id = payload.get("VENDORID")
 
-        if valid_vendor_id:
-            payload["VENDORID"] = vendor_id[
-                :20
-            ]  # Intact size limit on VENDORID (20 characters)
-            data = {"create": {"object": "account_payable_vendors", "VENDOR": payload}}
+        if vendor_id:
+            valid_vendor_id = bool(re.match("^[A-Za-z0-9- ]*$", vendor_id))
 
-            self.get_vendors()
-            if (not payload["VENDORID"] in self.vendors.items()) and (
-                not payload["NAME"] in self.vendors.keys()
-            ):
-                self.client.format_and_send_request(data)
+            if valid_vendor_id:
+                payload["VENDORID"] = vendor_id[
+                    :20
+                ]  # Intact size limit on VENDORID (20 characters)
+                data = {"create": {"object": "account_payable_vendors", "VENDOR": payload}}
+
+                self.get_vendors()
+                if (not payload["VENDORID"] in self.vendors.items()) and (
+                    not payload["NAME"] in self.vendors.keys()
+                ):
+                    self.client.format_and_send_request(data)
+            else:
+                self.logger.info(f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted")
         else:
-            self.logger.info(f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted")
+            self.logger.info(f"Skipping vendor {payload} because vendorid is empty")
 
     def apadjustment_upload(self, record):
         # Format data
