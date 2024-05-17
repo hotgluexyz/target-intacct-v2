@@ -55,14 +55,14 @@
         "totalTaxAmount": null,
         "totalAmount": null,
         "amountDue": null,
-        "status": null,
+        "status": "STATE",
         "createdAt": "WHENCREATED",
         "updatedAt": null,
         "location": "LOCATIONNAME",
         "locationId": "LOCATIONID"
     },
     "bills": {
-        "status": null,
+        "status": "STATE",
         "dueDate": "WHENDUE",
         "currency": "BASECURR",
         "paidDate": "RECPAYMENTDATE",

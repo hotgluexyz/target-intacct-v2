@@ -203,6 +203,13 @@ class intacctSink(RecordSink):
         supdoc_id = self.post_attachments(payload, record)
         if supdoc_id:
             payload["SUPDOCID"] = supdoc_id
+        
+        # Map action
+        action = payload.get("STATE")
+        if action:
+            if action.lower() == "draft":
+                payload["ACTION"] = "Draft"
+        payload.pop("STATE", None)
 
         # Get the matching values for the payload :
         # Matching "VENDORNAME" -> "VENDORID"
@@ -306,6 +313,13 @@ class intacctSink(RecordSink):
         supdoc_id = self.post_attachments(payload, record)
         if supdoc_id:
             payload["SUPDOCID"] = supdoc_id
+        
+        # Map action
+        action = payload.get("STATE")
+        if action:
+            if action.lower() == "draft":
+                payload["ACTION"] = "Draft"
+        payload.pop("STATE", None)
 
         #include locationid at header level
         if payload.get("LOCATIONNAME"):
