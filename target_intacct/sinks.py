@@ -357,6 +357,11 @@ class intacctSink(RecordSink):
                 self.get_locations()
                 item["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
 
+            if item.get("CLASSID"):
+                self.get_classes()
+                if item.get("CLASSID") not in self.classes.values():
+                    raise Exception(f'CLASSID {item.get("CLASSID")} not found for this tenant')
+
             if item.get("CLASSNAME"):
                 self.get_classes()
                 item["CLASSID"] = self.classes[item["CLASSNAME"]]
