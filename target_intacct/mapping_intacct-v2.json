@@ -97,7 +97,8 @@
                 "description": "ENTRYDESCRIPTION",
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
-                "locationId": "LOCATIONID"
+                "locationId": "LOCATIONID",
+                "classId": "CLASSID"
             }
         ],
         "updatedAt": null,
