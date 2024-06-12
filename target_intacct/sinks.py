@@ -213,8 +213,8 @@ class intacctSink(RecordSink):
 
         # Get the matching values for the payload :
         # Matching "VENDORNAME" -> "VENDORID"
-        if payload.get("VENDORNAME"):
-            self.get_vendors()
+        self.get_vendors()
+        if payload.get("VENDORNAME") and not payload.get("VENDORID"):
             vendor_name = self.vendors.get(payload["VENDORNAME"])
             if vendor_name:
                 payload["VENDORID"] = self.vendors[payload["VENDORNAME"]]
@@ -222,6 +222,12 @@ class intacctSink(RecordSink):
                 raise Exception(
                     f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
                 )
+        payload.pop("VENDORNAME")
+        
+        if payload.get("VENDORID") not in self.vendors.values():
+            raise Exception(
+                f"ERROR: VENDORID {payload['VENDORID']} not found for this account."
+            )
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
