@@ -32,7 +32,6 @@
                 "customFields": "customFields"
             }
         ],
-        "supplierCode": "VENDORID",
         "supplierNumber": "VENDORID",
         "supplierName": "VENDORNAME",
         "currency": "BASECURR",
