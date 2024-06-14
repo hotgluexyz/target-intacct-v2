@@ -330,8 +330,13 @@ class intacctSink(RecordSink):
         #include locationid at header level
         if payload.get("LOCATIONNAME"):
             self.get_locations()
-            payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
-            payload.pop("LOCATIONNAME")
+            if self.locations.get(payload["LOCATIONNAME"]):
+                payload["LOCATIONID"] = self.locations[payload["LOCATIONNAME"]]
+                payload.pop("LOCATIONNAME")
+            else:
+                raise Exception(
+                    f"ERROR: Location '{payload['LOCATIONNAME']}' does not exist. Did you mean any of these: {list(self.locations.keys())}?"
+                )
 
         #look for vendorName, vendorNumber and vendorId
         if not payload.get("VENDORID"):
@@ -343,7 +348,7 @@ class intacctSink(RecordSink):
                     payload = {**vendor_dict, **payload}
                 else:
                     raise Exception(
-                        f"ERROR: VENDORNAME {payload['VENDORNAME']} not found for this account."
+                        f"ERROR: Vendor {payload['VENDORNAME']} does not exist. Did you mean any of these: {list(self.vendors.keys())}?"
                     )
 
             elif payload.get("VENDORNUMBER"):
@@ -365,13 +370,24 @@ class intacctSink(RecordSink):
 
             if item.get("CLASSNAME"):
                 self.get_classes()
-                item["CLASSID"] = self.classes[item["CLASSNAME"]]
-                item.pop("CLASSNAME")
+                if self.classes.get(item["CLASSNAME"]):
+                    item["CLASSID"] = self.classes[item["CLASSNAME"]]
+                    item.pop("CLASSNAME")
+                else:
+                    self.logger.info(
+                        f"Skipping class due Class {payload['CLASSNAME']} does not exist. Did you mean any of these: {list(self.classes.keys())}?"
+                    )
+
 
             if item.get("PROJECTNAME"):
                 self.get_projects()
-                item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
-                item.pop("PROJECTNAME")
+                if self.projects.get(item["PROJECTNAME"]):
+                    item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
+                    item.pop("PROJECTNAME")
+                else:
+                    self.logger.info(
+                        f"Skipping project due Project {payload['PROJECTNAME']} does not exist. Did you mean any of these: {list(self.projects.keys())}?"
+                    )
 
             #use accountname instead of accountno
             self.get_accounts()
@@ -382,16 +398,16 @@ class intacctSink(RecordSink):
                 item["ACCOUNTNAME"] = acct_name
             elif not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found for this tenant. \n Intaccts Requires an ACCOUNTNO associated with each line item"
+                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found for this tenant in item {item}. \n Intaccts Requires an ACCOUNTNO associated with each line item"
                 )
 
-            #we add departmentid as intacct requires it
+            #departmentid is optional
             self.get_departments()
             if item.get("DEPARTMENT"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                item["DEPARTMENTID"] = self.departments.get(item.get("DEPARTMENT"))
                 item.pop("DEPARTMENT")
-            elif item.get("DEPARTMENTNAME"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+            if item.get("DEPARTMENTNAME") and not item.get("DEPARTMENTID"):
+                item["DEPARTMENTID"] = self.departments.get(item.get("DEPARTMENTNAME"))
                 item.pop("DEPARTMENTNAME")
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
