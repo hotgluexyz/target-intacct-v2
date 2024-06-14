@@ -95,7 +95,9 @@ class UnifiedMapping:
                 )
                 payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
-                payload["APBILLITEMS"] = {"APBILLITEM": []}
+                # expenses and lineItems are mapped to APBILLITEM, if APBILLITEMS has data add new lines there
+                if not payload.get("APBILLITEMS", {}).get("APBILLITEM"):
+                    payload["APBILLITEMS"] = {"APBILLITEM": []}
                 lines = self.map_lineItems(
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
