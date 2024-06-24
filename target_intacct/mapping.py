@@ -150,11 +150,11 @@ class UnifiedMapping:
                     data = base64.b64encode(attach_file.read()).decode()
                     attachment["data"] = data
 
-        attachment_payload = [{"attachment":{
+        attachment_payload = {"attachment": [{
             "attachmentname": att.get("name"),
             "attachmenttype": self.get_attachment_type(att.get("name")),
             "attachmentdata": att.get("data"),
-            }} for att in attachments if att.get("name") not in existing_attachments]
+            } for att in attachments if att.get("name") not in existing_attachments]}
 
         payload = {
             f"{action}_supdoc": {
