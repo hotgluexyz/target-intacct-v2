@@ -165,6 +165,6 @@ class UnifiedMapping:
                 "attachments": attachment_payload
             }
         }
-        if attachment_payload:
+        if attachment_payload.get("attachment"):
             return payload
         return None

@@ -172,14 +172,13 @@ class intacctSink(RecordSink):
             supdoc = supdoc.get("supdoc")
             if supdoc:
                 self.logger.info(f"supdoc with id {att_id} already exists, updating existing supdoc")
-                attachments = supdoc.get("attachments")
+                attachments = supdoc.get("attachments", {}).get("attachment")
                 #getting a list of existing attachments to avoid duplicates
                 existing_attachments = []
                 if isinstance(attachments, dict):
-                    if attachments.get("attachment", {}).get("attachmentname"):
-                        existing_attachments.append(attachments.get("attachment", {}).get("attachmentname"))
+                    existing_attachments.append(attachments.get("attachmentname"))
                 elif isinstance(attachments, list):
-                    existing_attachments = [att.get("attachment",{}).get("attachmentname") for att in attachments]
+                    existing_attachments = [att.get("attachmentname") for att in attachments]
                 #update att_payload to
                 att_payload = mapping.prepare_attachment_payload(record, "update", existing_attachments)
             #send attachments
