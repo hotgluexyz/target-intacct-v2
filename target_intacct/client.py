@@ -274,7 +274,7 @@ class SageIntacctSDK:
         logging.info(f"Creating request with object_type: {object_type} and action {data[key]}")
 
         # Remove object entry if unnecessary
-        if "create" in key or key in ["create", "update"]:
+        if "create" in key or "update" in key or key in ["create", "update"]:
             data[key].pop("object", None)
 
         timestamp = dt.datetime.now()
