@@ -178,7 +178,7 @@ class intacctSink(RecordSink):
                 if isinstance(attachments, dict):
                     existing_attachments.append(attachments.get("attachmentname"))
                 elif isinstance(attachments, list):
-                    existing_attachments = [att.get("attachmentname") for att in attachments]
+                    existing_attachments = [att.get("attachmentdata") for att in attachments]
                 #update att_payload to
                 att_payload = mapping.prepare_attachment_payload(record, "update", existing_attachments)
             #send attachments
