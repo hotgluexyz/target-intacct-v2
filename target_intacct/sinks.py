@@ -247,11 +247,8 @@ class intacctSink(RecordSink):
 
             if item.get("VENDORNAME"):
                 self.get_vendors()
-                item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
+                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
                 item.pop("VENDORNAME")
-
-            if not item.get("VENDORNAME") and payload.get("VENDORNAME"):
-                item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
 
             if item.get("CLASSNAME"):
                 self.get_classes()
