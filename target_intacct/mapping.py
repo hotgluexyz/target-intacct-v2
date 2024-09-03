@@ -152,7 +152,7 @@ class UnifiedMapping:
                     attachment["data"] = data
 
         attachment_payload = {"attachment": [{
-            "attachmentname": f'{att.get("id")}_{att.get("name")}',
+            "attachmentname": f'{att.get("id")}_{att.get("name")}' if att.get("id") else att.get("name"),
             "attachmenttype": self.get_attachment_type(att.get("name")),
             "attachmentdata": att.get("data"),
             } for att in attachments if att.get("data") not in existing_attachments]}
