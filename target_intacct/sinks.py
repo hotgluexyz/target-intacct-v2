@@ -514,6 +514,10 @@ class intacctSink(RecordSink):
             record, "apadjustment", self.target_name
         )
 
+        if payload.get("action"):
+            action = payload["action"]
+            payload["action"] = "Draft" if action.lower() == "draft" else "Submit"
+
         if payload.get("vendorname"):
             self.get_vendors()
             payload["vendorid"] = self.vendors[payload["vendorname"]]
