@@ -166,6 +166,7 @@
     "apadjustment": {
         "vendorId": "vendorid",
         "transactionDate": "datecreated",
+        "status": "action",
         "billNumber": "billno",
         "description": "description",
         "currency": "currency",
