@@ -174,11 +174,13 @@ class intacctSink(RecordSink):
                 self.logger.info(f"supdoc with id {att_id} already exists, updating existing supdoc")
                 attachments = supdoc.get("attachments", {}).get("attachment")
                 #getting a list of existing attachments to avoid duplicates
-                existing_attachments = []
+                existing_attachments = {"content":[], "names":[]}
                 if isinstance(attachments, dict):
-                    existing_attachments.append(attachments.get("attachmentname"))
+                    existing_attachments["names"] = [attachments.get("attachmentname")]
+                    existing_attachments["content"] = (attachments.get("attachmentdata"))
                 elif isinstance(attachments, list):
-                    existing_attachments = [att.get("attachmentdata") for att in attachments]
+                    existing_attachments["content"] = [att.get("attachmentdata") for att in attachments]
+                    existing_attachments["names"] = [att.get("attachmentname") for att in attachments]
                 #update att_payload to
                 att_payload = mapping.prepare_attachment_payload(record, "update", existing_attachments)
             #send attachments
@@ -300,7 +302,15 @@ class intacctSink(RecordSink):
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
-        self.client.format_and_send_request(data)
+        try:
+            self.client.format_and_send_request(data)
+        except Exception as e:
+            # if invoice is new and attachments were posted, delete attachments
+            if supdoc_id and list(data.keys())[0] == "create": 
+                del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
+                self.client.format_and_send_request(del_supdoc)
+                self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
+            raise Exception(e)
 
     def bills_upload(self, record):
         # Format data
@@ -414,7 +424,15 @@ class intacctSink(RecordSink):
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
-        self.client.format_and_send_request(data)
+        try:
+            self.client.format_and_send_request(data)
+        except Exception as e:
+            # if invoice is new and attachments were posted, delete attachments
+            if supdoc_id and list(data.keys())[0] == "create": 
+                del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
+                self.client.format_and_send_request(del_supdoc)
+                self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
+            raise Exception(e)
 
     def journal_entries_upload(self, record):
 

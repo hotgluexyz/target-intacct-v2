@@ -130,7 +130,7 @@ class UnifiedMapping:
         except:
             return "pdf"
 
-    def prepare_attachment_payload(self, data, action="create", existing_attachments=[]):
+    def prepare_attachment_payload(self, data, action="create", existing_attachments={}):
         attachments = data.get("attachments", [])
         invoice_number = data.get("invoiceNumber")
         supdoc_id = str(invoice_number)[-20:].strip("-") # supdocid only allows 20 chars
@@ -150,12 +150,28 @@ class UnifiedMapping:
                 with open(att_path, "rb") as attach_file:
                     data = base64.b64encode(attach_file.read()).decode()
                     attachment["data"] = data
+        
+        filtered_attachments = []
+        for att in attachments:
+            should_post = False
+            if att.get("id"):
+                att_name = f'{att.get("id")}_{att.get("name")}'
+                # check if attachment content was previously posted (precoro)
+                should_post = att.get("data") not in existing_attachments.get("content", [])
+            else:
+                att_name = att.get("name")
+                # check if attachment name was previously posted
+                should_post = att_name not in existing_attachments.get("names", [])
+            
+            if should_post:
+                filtered_attachments.append({
+                    "attachmentname": att_name,
+                    "attachmenttype": self.get_attachment_type(att.get("name")),
+                    "attachmentdata": att.get("data"),
+                })
+            else:
+                self.logger.info(f"Attachment '{att_name}' skipped because attachment with the same name or content was found ")
 
-        attachment_payload = {"attachment": [{
-            "attachmentname": f'{att.get("id")}_{att.get("name")}',
-            "attachmenttype": self.get_attachment_type(att.get("name")),
-            "attachmentdata": att.get("data"),
-            } for att in attachments if att.get("data") not in existing_attachments]}
 
         payload = {
             f"{action}_supdoc": {
@@ -163,9 +179,9 @@ class UnifiedMapping:
                 "supdocid": supdoc_id, #only 20 chars allowed
                 "supdocname": invoice_number,
                 "supdocfoldername": supdoc_id, # we name the folder the same as the supdoc for easy correlation
-                "attachments": attachment_payload
+                "attachments": {"attachment": filtered_attachments}
             }
         }
-        if attachment_payload.get("attachment"):
+        if filtered_attachments:
             return payload
         return None
