@@ -448,7 +448,7 @@ class intacctSink(RecordSink):
 
         for item in payload.get("ENTRIES").get("GLENTRY"):
             self.get_accounts()
-            if item.get("ACCOUNTNAME"):
+            if item.get("ACCOUNTNAME") and item.get("ACCOUNTNO") not in self.accounts.values():
                 item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
                 item.pop("ACCOUNTNAME")
             if not item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
@@ -476,18 +476,18 @@ class intacctSink(RecordSink):
                     item["LOCATION"] = self.locations[item.get("LOCATIONNAME")]
                     item.pop("LOCATIONNAME")
 
-            self.get_classes()
             if item.get("CLASSNAME"):
+                self.get_classes()
                 item["CLASSID"] = self.classes.get(item["CLASSNAME"])
                 item.pop("CLASSNAME")
 
-            self.get_customers()
             if item.get("CUSTOMERNAME"):
+                self.get_customers()
                 item["CUSTOMERID"] = self.customers.get(item["CUSTOMERNAME"])
                 item.pop("CUSTOMERNAME")
 
-            self.get_vendors()
             if item.get("VENDORNAME"):
+                self.get_vendors()
                 item["VENDORID"] = self.vendors.get(item["VENDORNAME"])
                 item.pop("VENDORNAME")
 
