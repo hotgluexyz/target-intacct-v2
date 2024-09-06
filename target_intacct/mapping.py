@@ -3,9 +3,10 @@ import os
 import requests
 import base64
 import ast
+import logging
 
 __location__ = os.path.realpath(os.path.join(os.getcwd(), os.path.dirname(__file__)))
-
+logger = logging.getLogger(__name__)
 
 class UnifiedMapping:
     def __init__(self, config=None) -> None:
@@ -170,7 +171,7 @@ class UnifiedMapping:
                     "attachmentdata": att.get("data"),
                 })
             else:
-                self.logger.info(f"Attachment '{att_name}' skipped because attachment with the same name or content was found ")
+                logger.info(f"Attachment '{att_name}' skipped because attachment with the same name or content was found ")
 
 
         payload = {
