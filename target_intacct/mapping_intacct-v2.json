@@ -19,7 +19,7 @@
                 "taxCode": null,
                 "supplierNumber": "VENDORID",
                 "supplierName": "VENDORNAME",
-                "departmentId":"DEPARTMENT",
+                "departmentId":"DEPARTMENTID",
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
                 "accountNumber": "ACCOUNTNO",
