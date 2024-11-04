@@ -18,6 +18,7 @@
                 "taxAmount": null,
                 "taxCode": null,
                 "supplierNumber": "VENDORID",
+                "supplierCode": "VENDORID",
                 "supplierName": "VENDORNAME",
                 "departmentId":"DEPARTMENTID",
                 "department": "DEPARTMENT",
