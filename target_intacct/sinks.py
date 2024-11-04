@@ -247,10 +247,10 @@ class intacctSink(RecordSink):
                 else:
                     raise Exception(f"Location '{payload['LOCATIONNAME']}' does not exist. Did you mean any of these: {list(self.locations.keys())}?")
 
-            if item.get("VENDORNAME"):
+            if item.get("VENDORNAME") and not item.get("VENDORID"):
                 self.get_vendors()
-                item["VENDORID"] = self.vendors[item["VENDORNAME"]]
-                item.pop("VENDORNAME")
+                item["VENDORID"] = payload[item["VENDORNAME"]]
+            item.pop("VENDORNAME", None)
 
             if item.get("CLASSNAME"):
                 self.get_classes()
