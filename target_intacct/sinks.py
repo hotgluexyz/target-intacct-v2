@@ -619,7 +619,7 @@ class intacctSink(RecordSink):
             }
 
         ordered_payload = {}
-        for key in ["vendorid", "datecreated", "adjustmentno", "billno", "description", "currency", "exchratetype", "apadjustmentitems"]:
+        for key in ["vendorid", "datecreated", "adjustmentno", "action", "billno", "description", "currency", "exchratetype", "apadjustmentitems"]:
             if key in payload.keys():
                 ordered_payload[key] = payload[key]
             elif key == "exchratetype" and key not in payload.keys():
