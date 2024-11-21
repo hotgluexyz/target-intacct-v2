@@ -127,7 +127,7 @@ class UnifiedMapping:
 
     def get_attachment_type(self, att_name):
         try:
-            return att_name.split(".")[1]
+            return att_name.split(".")[-1]
         except:
             return "pdf"
 
