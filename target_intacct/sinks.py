@@ -198,6 +198,15 @@ class intacctSink(RecordSink):
         # Check if the invoice exists
         bill = None
         if payload.get("RECORDID"):
+            # validate RECORDID
+            invalid_chars = r"[\"\'&<>#?]"  # characters not allowed for RECORDID [&, <, >, #, ?]
+            is_id_valid = not bool(re.search(invalid_chars, payload.get("RECORDID")))
+
+            if not is_id_valid:
+                raise Exception(
+                    f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
+                )
+            # check if record exists
             bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
 
         #send attachments
@@ -319,6 +328,15 @@ class intacctSink(RecordSink):
 
         bill = None
         if payload.get("RECORDID"):
+            # validate RECORDID
+            invalid_chars = r"[\"\'&<>#?]"  # characters not allowed for RECORDID [&, <, >, #, ?]
+            is_id_valid = not bool(re.search(invalid_chars, payload.get("RECORDID")))
+
+            if not is_id_valid:
+                raise Exception(
+                    f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
+                )
+            # check if record exists
             bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
 
         #send attachments
