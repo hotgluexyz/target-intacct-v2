@@ -99,6 +99,7 @@ class intacctSink(RecordSink):
                 fields=["RECORDNO", "ACCOUNTNO", "TITLE"],
             )
             self.accounts = self.dictify(accounts, "TITLE", "ACCOUNTNO")
+            self.accounts_recordno = self.dictify(accounts, "RECORDNO", "ACCOUNTNO")
         return self.accounts
 
     def get_departments(self):
@@ -258,7 +259,7 @@ class intacctSink(RecordSink):
 
             if item.get("VENDORNAME") and not item.get("VENDORID"):
                 self.get_vendors()
-                item["VENDORID"] = payload[item["VENDORNAME"]]
+                item["VENDORID"] = self.vendors.get(item["VENDORNAME"])
             item.pop("VENDORNAME", None)
 
             if item.get("CLASSNAME"):
@@ -278,15 +279,16 @@ class intacctSink(RecordSink):
             if custom_fields:
                 [item.update({cf.get("name"): cf.get("value")}) for cf in custom_fields]
 
-            # TODO For now the account number is set by hand.
-            # item["ACCOUNTNO"] = "6220"
             self.get_accounts()
-            if item.get("ACCOUNTNAME") and self.accounts.get(item["ACCOUNTNAME"]):
+            if item.get("ACCOUNTID"):
+                item["ACCOUNTNO"] = next(( self.accounts_recordno.get(x) for x in self.accounts_recordno if x == item['ACCOUNTID']), None)
+                item.pop("ACCOUNTID", None)
+            if item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
                 item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
             elif not item.get("ACCOUNTNO"):
-                raise Exception(
-                    f"ERROR: ACCOUNTNO or ACCOUNTNAME not found. \n Intaccts Requires an ACCOUNTNAME associated with each line item"
-                )
+                raise Exception(    
+                    f"ERROR: Account not provided or not valid for this tenant in item {item}. \n Intaccts Requires an ACCOUNTNO associated with each line item"
+                )                
 
             self.get_items()
             if payload.get("ITEMNAME") and self.items.get(payload.get("ITEMNAME")):
@@ -413,16 +415,16 @@ class intacctSink(RecordSink):
                         f"Skipping project due Project {payload['PROJECTNAME']} does not exist. Did you mean any of these: {list(self.projects.keys())}?"
                     )
 
-            #use accountname instead of accountno
+            #use account instead of accountno
             self.get_accounts()
+            if item.get("ACCOUNTID"):
+                item["ACCOUNTNO"] = next(( self.accounts_recordno.get(x) for x in self.accounts_recordno if x == item['ACCOUNTID']), None)
+                item.pop("ACCOUNTID", None)
             if item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
                 item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
-            if item.get("ACCOUNTNO") and not item.get("ACCOUNTNAME"):
-                acct_name = next(( x for x in self.accounts if self.accounts.get(x) == item['ACCOUNTNO']), None)
-                item["ACCOUNTNAME"] = acct_name
-            elif not item.get("ACCOUNTNO"):
+            if not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNAME or ACCOUNTNO not found for this tenant in item {item}. \n Intaccts Requires an ACCOUNTNO associated with each line item"
+                    f"ERROR: Account not provided or not valid for this tenant in item {item}. \n Intaccts Requires an ACCOUNTNO associated with each line item"
                 )
 
             #departmentid is optional
@@ -466,12 +468,15 @@ class intacctSink(RecordSink):
 
         for item in payload.get("ENTRIES").get("GLENTRY"):
             self.get_accounts()
+            if item.get("ACCOUNTID"):
+                item["ACCOUNTNO"] = next(( self.accounts_recordno.get(x) for x in self.accounts_recordno if x == item['ACCOUNTID']), None)
+                item.pop("ACCOUNTID", None)
             if item.get("ACCOUNTNAME") and item.get("ACCOUNTNO") not in self.accounts.values():
                 item["ACCOUNTNO"] = self.accounts.get(item["ACCOUNTNAME"])
                 item.pop("ACCOUNTNAME")
-            if not item.get("ACCOUNTNAME") and not item.get("ACCOUNTNO"):
+            if not item.get("ACCOUNTNO"):
                 raise Exception(
-                    f"ERROR: ACCOUNTNO not found. \n Intaccts Requires an ACCOUNTNO associated with each line item"
+                    f"ERROR: Account not provided or not valid for this tenant on item {item}. \n Intaccts Requires an ACCOUNTNO associated with each line item"
                 )
             if item.get("TR_TYPE"):
                 value = 1 if item.get("TR_TYPE").lower() == "debit" else -1

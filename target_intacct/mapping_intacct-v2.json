@@ -23,6 +23,7 @@
                 "departmentId":"DEPARTMENTID",
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
+                "accountId": "ACCOUNTID",
                 "accountNumber": "ACCOUNTNO",
                 "accountName": "ACCOUNTNAME",
                 "classId": "CLASSID",
@@ -82,6 +83,8 @@
                 "unitPrice": null,
                 "productSku": null,
                 "totalPrice": "TRX_AMOUNT",
+                "accountId": "ACCOUNTID",
+                "accountNumber": "ACCOUNTNO",
                 "accountName": "ACCOUNTNAME",
                 "description": "ENTRYDESCRIPTION",
                 "productName": "ITEMNAME",
@@ -96,6 +99,7 @@
         "expenses": [
             {
                 "amount": "TRX_AMOUNT",
+                "accountId": "ACCOUNTID",
                 "accountNumber": "ACCOUNTNO",
                 "description": "ENTRYDESCRIPTION",
                 "department": "DEPARTMENT",
@@ -127,7 +131,7 @@
         "departmentName":null,
         "sourceEntityId": "BASELOCATION_NO",
         "lines":[
-            {
+            {   
                 "accountNumber":"ACCOUNTNO",
                 "accountName":"ACCOUNTNAME",
                 "customerName":"CUSTOMERNAME",
