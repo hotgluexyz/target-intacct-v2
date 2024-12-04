@@ -32,7 +32,8 @@
                 "projectName": "PROJECTNAME",
                 "location": "LOCATIONNAME",
                 "locationId": "LOCATIONID",
-                "customFields": "customFields"
+                "customFields": "customFields",
+                "taskId": "TASKID"
             }
         ],
         "supplierCode": "VENDORID",
@@ -93,7 +94,8 @@
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
                 "classId": "CLASSID",
-                "className": "CLASSNAME"
+                "className": "CLASSNAME",
+                "taskId": "TASKID"
             }
         ],
         "expenses": [
