@@ -679,39 +679,53 @@ class intacctSink(RecordSink):
                     "CURRENCY",
                     "TRX_TOTALDUE",
                 },
-                filters={"equalto": {"field": "RECORDID", "value": f"{bill_number}"}},
+                filters={"equalto": {"field": "RECORDNO", "value": f"{bill_number}"}},
             )
         return bills
 
     def pay_bill(self, record):
-        bill = self.query_bill(record["billNumber"])
-        if bill is not None:
-            if "paymentDate" not in record:
-                payment_date = datetime.today().strftime("%d/%m/%Y")
-            elif record["paymentDate"] is None:
-                payment_date = datetime.today().strftime("%d/%m/%Y")
-            else:
-                payment_date = record["paymentDate"]
-            bank_name = record["bankName"]
-            if "--" in bank_name:
-                bank_name = bank_name.split("--")[0]
-            payload = {
-                "FINANCIALENTITY": bank_name,
-                "PAYMENTMETHOD": record["paymentMethod"],
-                "VENDORID": bill["VENDORID"],
-                "CURRENCY": bill["CURRENCY"],
-                "PAYMENTDATE": payment_date,
-                "APPYMTDETAILS": {
-                    "APPYMTDETAIL": {
-                        "RECORDKEY": bill["RECORDNO"],
-                        "TRX_PAYMENTAMOUNT": bill["TRX_TOTALDUE"],
-                    }
-                },
-            }
-            data = {
-                "create": {"object": "accounts_payable_payments", "APPYMT": payload}
-            }
-            self.client.format_and_send_request(data)
+        if not record.get("billId"):
+            raise Exception("billId is a required field")
+
+        # Get the bill with the id
+        bill = self.query_bill(record["billId"])
+        if not bill:
+            raise Exception(f"No bill with id={record['billId']} found.")
+
+        # If no payment date is set, we fall back to today
+        payment_date = record.get("paymentDate")
+
+        if payment_date is None:
+            payment_date = datetime.today().strftime("%m/%d/%Y")
+
+        if not record.get("bankAccountName"):
+            raise Exception("bankAccountName is a required field")
+
+        bank_name = record["bankAccountName"]
+        # TODO: not sure why we need this
+        if "--" in bank_name:
+            bank_name = bank_name.split("--")[0]
+
+        if not record.get("paymentMethod"):
+            raise Exception("paymentMethod is a required field")
+
+        payload = {
+            "FINANCIALENTITY": bank_name,
+            "PAYMENTMETHOD": record["paymentMethod"],
+            "VENDORID": record.get("vendorId") or bill["VENDORID"],
+            "CURRENCY": record.get("currency") or bill["CURRENCY"],
+            "PAYMENTDATE": payment_date,
+            "APPYMTDETAILS": {
+                "APPYMTDETAIL": {
+                    "RECORDKEY": bill["RECORDNO"],
+                    "TRX_PAYMENTAMOUNT": record.get("amount") or bill["TRX_TOTALDUE"],
+                }
+            },
+        }
+        data = {
+            "create": {"object": "accounts_payable_payments", "APPYMT": payload}
+        }
+        self.client.format_and_send_request(data)
 
     def process_record(self, record: dict, context: dict) -> None:
 
@@ -723,7 +737,7 @@ class intacctSink(RecordSink):
             self.bills_upload(record)
         if self.stream_name == "JournalEntries":
             self.journal_entries_upload(record)
-        if self.stream_name == "PayBill":
+        if self.stream_name == "BillPayment":
             self.pay_bill(record)
         if self.stream_name == "APAdjustment":
             self.apadjustment_upload(record)
