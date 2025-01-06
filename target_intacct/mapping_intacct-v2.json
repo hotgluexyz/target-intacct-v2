@@ -67,6 +67,8 @@
         "locationId": "LOCATIONID"
     },
     "bills": {
+        "number": "DOCNUMBER",
+        "description": "DESCRIPTION",
         "status": "STATE",
         "dueDate": "WHENDUE",
         "currency": "BASECURR",
@@ -80,6 +82,7 @@
                 "taxCode": null,
                 "quantity": null,
                 "projectId": "PROJECTID",
+                "projectName": "PROJECTNAME",
                 "taxAmount": null,
                 "unitPrice": null,
                 "productSku": null,
@@ -89,13 +92,16 @@
                 "accountName": "ACCOUNTNAME",
                 "description": "ENTRYDESCRIPTION",
                 "productName": "ITEMNAME",
+                "productId": "ITEMID",
                 "discountAmount": null,
                 "locationId": "LOCATIONID",
+                "departmentId":"DEPARTMENTID",
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
                 "classId": "CLASSID",
                 "className": "CLASSNAME",
-                "taskId": "TASKID"
+                "taskId": "TASKID",
+                "customFields": "customFields"
             }
         ],
         "expenses": [
