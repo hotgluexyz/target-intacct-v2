@@ -405,15 +405,20 @@ class intacctSink(RecordSink):
                     )
 
 
-            if item.get("PROJECTNAME"):
+            if item.get("PROJECTNAME") and not item.get("PROJECTID"):
                 self.get_projects()
                 if self.projects.get(item["PROJECTNAME"]):
                     item["PROJECTID"] = self.projects[item["PROJECTNAME"]]
-                    item.pop("PROJECTNAME")
                 else:
                     self.logger.info(
                         f"Skipping project due Project {payload['PROJECTNAME']} does not exist. Did you mean any of these: {list(self.projects.keys())}?"
                     )
+            item.pop("PROJECTNAME", None)
+
+            if payload.get("ITEMNAME") and not item.get("ITEMID"):
+                self.get_items()
+                item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
+            item.pop("ITEMNAME", None)
 
             #use account instead of accountno
             self.get_accounts()
@@ -429,12 +434,18 @@ class intacctSink(RecordSink):
 
             #departmentid is optional
             self.get_departments()
-            if item.get("DEPARTMENT"):
+            if item.get("DEPARTMENT") and not item.get("DEPARTMENTID"):
                 item["DEPARTMENTID"] = self.departments.get(item.get("DEPARTMENT"))
-                item.pop("DEPARTMENT")
+            item.pop("DEPARTMENT", None)
             if item.get("DEPARTMENTNAME") and not item.get("DEPARTMENTID"):
                 item["DEPARTMENTID"] = self.departments.get(item.get("DEPARTMENTNAME"))
-                item.pop("DEPARTMENTNAME")
+            item.pop("DEPARTMENTNAME", None)
+
+            
+            #add custom fields to the item payload
+            custom_fields = item.pop("customFields", None)
+            if custom_fields:
+                [item.update({cf.get("name"): cf.get("value")}) for cf in custom_fields]
 
         payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
