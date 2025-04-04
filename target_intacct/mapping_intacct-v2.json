@@ -186,6 +186,7 @@
         "currency": "currency",
         "adjustmentNumber": "adjustmentno",
         "lineItems": [{
+            "accountId": "accountid",
             "accountNumber": "glaccountno",
             "accountName": "accountlabel",
             "amount": "amount",

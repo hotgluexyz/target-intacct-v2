@@ -578,7 +578,11 @@ class intacctSink(RecordSink):
             payload["basecurr"] = payload["currency"]
 
         for item in payload.get("apadjustmentitems").get("lineitem", []):
-            if item.get("accountlabel") and not item.get("glaccountno"):
+            if item.get("accountid") and not item.get("glaccountno") and not item.get("accountlabel"):
+                self.get_accounts()
+                item["glaccountno"] = self.accounts_recordno.get(item["accountid"])
+                item.pop("accountid")
+            elif item.get("accountlabel") and not item.get("glaccountno"):
                 self.get_accounts()
                 item["glaccountno"] = self.accounts.get(item["accountlabel"])
                 item.pop("accountlabel")
