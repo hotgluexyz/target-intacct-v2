@@ -12,6 +12,7 @@ import requests
 import singer
 import xmltodict
 import logging
+import backoff
 
 from target_intacct.exceptions import (
     ExpiredTokenError,
@@ -128,6 +129,8 @@ class SageIntacctSDK:
             raise SageIntacctSDKError("Error: {0}".format(response["errormessage"]))
 
     @singer.utils.ratelimit(10, 1)
+    # backoff this function, min time to wait is 5 second, max is 10 seconds
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException), max_tries=5, base=3)
     def _post_request(self, dict_body: dict, api_url: str) -> Dict:
         """
         Create a HTTP post request.
