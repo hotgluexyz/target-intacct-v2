@@ -189,9 +189,22 @@ class intacctSink(RecordSink):
                 self.client.format_and_send_request(att_payload)
             return att_id
         return None
+    
+    def get_employee_id_by_recordno(self, recordno):
+        employee = self.client.query_entity(
+            object_type="employees",
+                bill_number=None,
+                fields={
+                    "RECORDNO",
+                    "EMPLOYEEID",
+                },
+                filters={"equalto": {"field": "RECORDNO", "value": f"{recordno}"}},
+        )
+        if employee:
+            return employee["EMPLOYEEID"]
+        raise Exception(f"Employee with recordno {recordno} not found.")
 
     def purchase_invoices_upload(self, record):
-
         # Format data
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_invoices", self.target_name)
@@ -242,6 +255,10 @@ class intacctSink(RecordSink):
 
         # Matching ""
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            if item.get("EMPLOYEENO"):
+                item["EMPLOYEEID"] = self.get_employee_id_by_recordno(item["EMPLOYEENO"])
+                item.pop("EMPLOYEENO", None)
+
             if item.get("LOCATIONNAME"):
                 self.get_locations()
                 location = self.locations.get(item["LOCATIONNAME"])

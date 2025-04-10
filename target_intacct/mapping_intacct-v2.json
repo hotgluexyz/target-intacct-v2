@@ -33,7 +33,8 @@
                 "location": "LOCATIONNAME",
                 "locationId": "LOCATIONID",
                 "customFields": "customFields",
-                "taskId": "TASKID"
+                "taskId": "TASKID",
+                "employeeId": "EMPLOYEENO"
             }
         ],
         "supplierCode": "VENDORID",
