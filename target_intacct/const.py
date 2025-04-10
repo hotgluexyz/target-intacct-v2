@@ -33,6 +33,7 @@ INTACCT_OBJECTS = {
     "departments": "DEPARTMENT",
     "item": "ITEM",
     "payment_provider_bank_accounts": "PROVIDERBANKACCOUNT",
+    "employees": "EMPLOYEE",
 }
 
 GET_BY_DATE_FIELD = "WHENMODIFIED"
