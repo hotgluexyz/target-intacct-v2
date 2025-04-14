@@ -402,6 +402,10 @@ class intacctSink(RecordSink):
                     raise Exception(f"ERROR: VENDORID {payload['VENDORNUMBER']} not found for this account.")
 
         for item in payload.get("APBILLITEMS").get("APBILLITEM"):
+            if item.get("EMPLOYEENO"):
+                item["EMPLOYEEID"] = self.get_employee_id_by_recordno(item["EMPLOYEENO"])
+                item.pop("EMPLOYEENO", None)
+
             if payload.get("VENDORNAME"):
                 self.get_vendors()
                 item["VENDORID"] = self.vendors[payload["VENDORNAME"]]
