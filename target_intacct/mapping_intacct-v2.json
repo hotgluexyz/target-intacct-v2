@@ -204,5 +204,33 @@
             "departmentId": "departmentid",
             "departmentName": "departmentname"
         }]
+    },
+    "purchase_orders": {
+        "id": "RECORDNO",
+        "transactionDate": "datecreated",
+        "vendorId": "vendorid",
+        "vendorName": "vendorname",
+        "number": "documentno",
+        "referenceNumber": "referenceno",
+        "paymentTerm": "termname",
+        "dueDate": "datedue",
+        "description": "message",
+        "currency": "basecurr",
+        "lineItems": [{
+            "productId": "itemid",
+            "quantity": "quantity",
+            "unitPrice": "price",
+            "taxAmount": "tax",
+            "locationId": "locationid",
+            "locationName": "locationname",
+            "departmentId": "departmentid",
+            "departmentName": "departmentname",
+            "description": "memo",
+            "projectId": "projectid",
+            "projectName": "projectname",
+            "employeeId": "employeeid",
+            "classId": "classid",
+            "className": "classname"
+        }]    
     }
 }
