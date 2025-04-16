@@ -690,6 +690,124 @@ class intacctSink(RecordSink):
         data = {"create_apadjustment": {"object": "apadjustment", "APADJUSTMENT": ordered_payload}}
         self.client.format_and_send_request(data, use_payload=True)
 
+    def purchase_orders_upload(self, record):
+        # Format data
+        mapping = UnifiedMapping()
+        payload = mapping.prepare_payload(record, "purchase_orders", self.target_name)
+
+        payload["transactiontype"] = "Purchase Order"
+
+        # Check if the invoice exists
+        order = None
+        if payload.get("RECORDNO"):
+            # check if record exists
+            recordno = payload.pop("RECORDNO")
+            order = self.client.get_entity(object_type="purchase_orders", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDNO","value": recordno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
+            if order:
+                order_lines = self.client.get_entity(object_type="purchase_orders_entry", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"DOCHDRNO","value": recordno}}, "pagesize": "2000"}, docparid="Purchase Order")
+
+        # Get the matching values for the payload :
+        self.get_vendors()
+        vendor_name = payload.pop("vendorname", None)
+        if vendor_name and not payload.get("vendorid"):
+            try:
+                payload["vendorid"] = self.vendors[vendor_name]
+            except:
+                return {
+                    "error": f"ERROR: Vendor {vendor_name} does not exist. Did you mean any of these: {list(self.vendors.keys())}?"
+                }
+
+        if payload.get("datecreated"):
+            payload["datecreated"] = {
+                "year": payload.get("datecreated").split("-")[0],
+                "month": payload.get("datecreated").split("-")[1],
+                "day": payload.get("datecreated").split("-")[2],
+            }
+
+        if payload.get("datedue"):
+            payload["datedue"] = {
+                "year": payload.get("datedue").split("-")[0],
+                "month": payload.get("datedue").split("-")[1],
+                "day": payload.get("datedue").split("-")[2],
+            }
+
+        if payload.get("basecurr"):
+            payload["currency"] = payload["basecurr"]
+        payload["returnto"] = {"contactname": None}
+        payload["payto"] = {"contactname": None}
+        payload["exchratetype"] = "Intacct Daily Rate"
+
+        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "basecurr", "currency", "exchratetype", "potransitems"]
+        payload = UnifiedMapping().order_dicts(payload, key_order)
+
+        items = payload.get("potransitems").get("potransitem", [])
+        for item in items:
+            item["unit"] = "Each"
+
+            self.get_locations()
+            location_name = item.pop("locationname", None)
+            if location_name and not item.get("locationid"):
+                try:
+                    item["locationid"] = self.locations[location_name]
+                except:
+                    return {
+                        "error": f"ERROR: Location {location_name} does not exist. Did you mean any of these: {list(self.locations.keys())}?"
+                    }
+            
+            self.get_departments()
+            department_name = item.pop("departmentname", None)
+            if department_name and not item.get("departmentid"):
+                try:
+                    item["departmentid"] = self.departments[department_name]
+                except:
+                    return {
+                        "error": f"ERROR: Department {department_name} does not exist. Did you mean any of these: {list(self.departments.keys())}?"
+                    }
+                
+            self.get_projects()
+            project_name = item.pop("projectname", None)
+            if project_name and not item.get("projectid"):
+                try:
+                    item["projectid"] = self.projects[project_name]
+                except:
+                    return {
+                        "error": f"ERROR: Project {project_name} does not exist. Did you mean any of these: {list(self.projects.keys())}?"
+                    }
+                
+            self.get_classes()
+            class_name = item.pop("classname", None)
+            if class_name and not item.get("classid"):
+                try:
+                    item["classid"] = self.classes[class_name]
+                except:
+                    return {
+                        "error": f"ERROR: Class {class_name} does not exist. Did you mean any of these: {list(self.classes.keys())}?"
+                    }
+
+        key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
+        payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
+
+        if order:
+            # when updating the record we need to remove some fields from the payload
+            fields_remove = ["vendorid", "transactiontype", "documentno"]
+            for field in fields_remove:
+                payload.pop(field, None)
+
+            # add the PK for update
+            payload["@key"] = f"Purchase Order-{order['DOCNO']}"
+            
+            payload["updatepotransitems"] = {**payload.pop("potransitems", None)}
+            if order_lines:
+                # delete existing lines
+                payload["updatepotransitems"]["updatepotransitem"] = [{"@line_num": n, "itemid": None} for n in range(1, len(order_lines)+1)]            
+
+            data = {"update_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
+        else:
+            data = {"create_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
+
+        self.client.format_and_send_request(data, use_payload=True)
+
+
     def get_banks(self):
         # Lookup for banks
         if self.banks is None:
@@ -777,3 +895,5 @@ class intacctSink(RecordSink):
             self.pay_bill(record)
         if self.stream_name == "APAdjustment":
             self.apadjustment_upload(record)
+        if self.stream_name == "PurchaseOrders":
+            self.purchase_orders_upload(record)
