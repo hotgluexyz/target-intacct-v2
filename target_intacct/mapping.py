@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import requests
@@ -112,6 +113,8 @@ class UnifiedMapping:
             elif "date" in lookup_key.lower():
                 val = record.get(lookup_key)
                 if val:
+                    if isinstance(val, datetime.datetime):
+                        val = val.isoformat()
                     payload[mapping[lookup_key]] = val.split("T")[0]
                 else:
                     val = ""
