@@ -308,7 +308,7 @@ class SageIntacctSDK:
             response = self._post_request(dict_body, self.__api_url)
         return response["result"]
 
-    def get_entity(self, *, object_type: str, fields: List[str], filter={}) -> List[Dict]:
+    def get_entity(self, *, object_type: str, fields: List[str], filter={}, docparid=None) -> List[Dict]:
         """
         Get multiple objects of a single type from Sage Intacct.
 
@@ -328,6 +328,9 @@ class SageIntacctSDK:
 
         if filter:
             get_count["query"].update(filter)
+
+        if docparid:
+            get_count["docparid"] = docparid
 
         response = self.format_and_send_request(get_count)
 

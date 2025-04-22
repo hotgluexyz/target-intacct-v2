@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 import requests
@@ -95,6 +96,11 @@ class UnifiedMapping:
                     record.get(lookup_key, []), mapping[lookup_key]
                 )
                 payload["apadjustmentitems"]["lineitem"] = payload["apadjustmentitems"]["lineitem"] + lines
+            elif lookup_key == "lineItems" and endpoint == "purchase_orders":
+                payload["potransitems"] = {"potransitem": []}
+                payload["potransitems"]["potransitem"] = self.map_lineItems(
+                    record.get(lookup_key, []), mapping[lookup_key]
+                )
             elif (lookup_key == "lineItems" or lookup_key == "expenses") and target == "intacct-v2":
                 # expenses and lineItems are mapped to APBILLITEM, if APBILLITEMS has data add new lines there
                 if not payload.get("APBILLITEMS", {}).get("APBILLITEM"):
@@ -112,6 +118,8 @@ class UnifiedMapping:
             elif "date" in lookup_key.lower():
                 val = record.get(lookup_key)
                 if val:
+                    if isinstance(val, datetime.datetime):
+                        val = val.isoformat()
                     payload[mapping[lookup_key]] = val.split("T")[0]
                 else:
                     val = ""
