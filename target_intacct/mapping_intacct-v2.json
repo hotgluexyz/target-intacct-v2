@@ -99,6 +99,7 @@
                 "departmentId":"DEPARTMENTID",
                 "department": "DEPARTMENT",
                 "departmentName": "DEPARTMENTNAME",
+                "vendorId":"VENDORID",
                 "classId": "CLASSID",
                 "className": "CLASSNAME",
                 "taskId": "TASKID",
@@ -113,9 +114,13 @@
                 "accountNumber": "ACCOUNTNO",
                 "description": "ENTRYDESCRIPTION",
                 "department": "DEPARTMENT",
+                "departmentId":"DEPARTMENTID",
                 "departmentName": "DEPARTMENTNAME",
+                "vendorId":"VENDORID",
                 "locationId": "LOCATIONID",
-                "classId": "CLASSID"
+                "classId": "CLASSID",
+                "projectId": "PROJECTID",
+                "projectName": "PROJECTNAME"
             }
         ],
         "updatedAt": null,

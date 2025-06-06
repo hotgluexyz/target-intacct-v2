@@ -468,7 +468,10 @@ class intacctSink(RecordSink):
             if custom_fields:
                 [item.update({cf.get("name"): cf.get("value")}) for cf in custom_fields]
 
-        payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+        if payload.get("WHENCREATED"):
+            payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+        else:
+            payload["WHENCREATED"] = datetime.now().strftime("%Y-%m-%d")
 
         if bill:
             payload.update(bill)
