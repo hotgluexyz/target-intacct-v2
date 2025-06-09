@@ -68,7 +68,6 @@
         "locationId": "LOCATIONID"
     },
     "bills": {
-        "vendorBillNumber": "DOCNUMBER",
         "number": "DOCNUMBER",
         "description": "DESCRIPTION",
         "status": "STATE",
@@ -129,6 +128,7 @@
         "vendorId": "VENDORID",
         "vendorNum": "VENDORNUMBER",
         "totalAmount": null,
+        "vendorBillNumber": "RECORDID",
         "invoiceNumber": "RECORDID",
         "totalDiscount": null,
         "totalTaxAmount": null,
