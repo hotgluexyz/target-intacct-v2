@@ -673,7 +673,7 @@ class intacctSink(RecordSink):
             
         # order line fields
         lines = payload.get("apadjustmentitems").get("lineitem", [])
-        first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "departmentid", "projectid", "vendorid", "classid"]
+        first_keys = ["glaccountno", "accountlabel", "amount","memo", "locationid", "departmentid", "projectid", "taskid", "vendorid", "classid"]
         payload["apadjustmentitems"]["lineitem"] = [UnifiedMapping().order_dicts(line, first_keys) for line in lines]
 
         if payload.get("datecreated"):
