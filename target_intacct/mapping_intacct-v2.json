@@ -203,6 +203,7 @@
             "vendorName": "vendorname",
             "projectId": "projectid",
             "projectName": "projectname",
+            "taskId": "taskid",
             "locationName": "locationname",
             "locationId": "locationid",
             "classId": "classid",
