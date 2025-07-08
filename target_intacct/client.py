@@ -151,8 +151,11 @@ class SageIntacctSDK:
         if not "attachmentdata" in str(body):
             logging.info(f"Raw response {response.text} with status code {response.status_code}")
 
-        parsed_xml = xmltodict.parse(response.text)
-        parsed_response = json.loads(json.dumps(parsed_xml))
+        try:
+            parsed_xml = xmltodict.parse(response.text)
+            parsed_response = json.loads(json.dumps(parsed_xml))
+        except:
+            raise Exception(f"Error: {response.text}, Status code: {response.status_code}")
 
         if "attachmentdata" in str(body):
             logging.info(f"response with status code {response.status_code} for request to {response.url}")
