@@ -13,6 +13,7 @@ import singer
 import xmltodict
 import logging
 import backoff
+import copy
 
 from target_intacct.exceptions import (
     ExpiredTokenError,
@@ -127,6 +128,18 @@ class SageIntacctSDK:
 
         else:
             raise SageIntacctSDKError("Error: {0}".format(response["errormessage"]))
+        
+    def clean_creds(self, key_field: str, request_body: dict):
+        request_body = request_body.copy()
+        if request_body.get(key_field, {}).get("control", {}):
+            for key, _ in request_body[key_field]["control"].items():
+                request_body[key_field]["control"][key] = "***"
+        
+        if request_body.get(key_field, {}).get("operation", {}).get("authentication", {}):
+            for key, _ in request_body[key_field]["operation"]["authentication"].items():
+                request_body[key_field]["operation"]["authentication"][key] = "***"
+        
+        return request_body
 
     @singer.utils.ratelimit(10, 1)
     # backoff this function, min time to wait is 5 second, max is 10 seconds
@@ -148,8 +161,13 @@ class SageIntacctSDK:
         body = xmltodict.unparse(dict_body).encode('utf-8')
         response = requests.post(api_url, headers=api_headers, data=body)
 
+        clean_parsed_response = copy.deepcopy(parsed_response)
+        clean_parsed_response = self.clean_creds("response", clean_parsed_response)
+
+        clean_body = self.clean_creds("request", dict_body)
+
         if not "attachmentdata" in str(body):
-            logging.info(f"Raw response {response.text} with status code {response.status_code}")
+            logging.info(f"Raw response {clean_body} with status code {response.status_code}")
 
         try:
             parsed_xml = xmltodict.parse(response.text)
@@ -160,7 +178,7 @@ class SageIntacctSDK:
         if "attachmentdata" in str(body):
             logging.info(f"response with status code {response.status_code} for request to {response.url}")
         else:
-            logging.info(f"parsed response {parsed_response} with status code {response.status_code} for request to {response.url}")
+            logging.info(f"parsed response {clean_parsed_response} with status code {response.status_code} for request to {response.url}")
 
         #getting the errors
         res = parsed_response["response"]
@@ -212,7 +230,7 @@ class SageIntacctSDK:
         if response.status_code == 500:
             raise InternalServerError("Internal server error", error)
 
-        logging.info("Error while sending request data: {0}".format(response.request.body))
+        logging.info("Error while sending request data: {0}".format(clean_body))
         raise SageIntacctSDKError("Error: {0}".format(error))
 
     def support_id_msg(self, errormessages) -> Union[List, Dict]:
