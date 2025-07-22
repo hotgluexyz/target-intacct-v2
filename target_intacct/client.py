@@ -161,9 +161,6 @@ class SageIntacctSDK:
         body = xmltodict.unparse(dict_body).encode('utf-8')
         response = requests.post(api_url, headers=api_headers, data=body)
 
-        clean_parsed_response = copy.deepcopy(parsed_response)
-        clean_parsed_response = self.clean_creds("response", clean_parsed_response)
-
         clean_body = self.clean_creds("request", dict_body)
 
         if not "attachmentdata" in str(body):
@@ -174,6 +171,9 @@ class SageIntacctSDK:
             parsed_response = json.loads(json.dumps(parsed_xml))
         except:
             raise Exception(f"Error: {response.text}, Status code: {response.status_code}")
+        
+        clean_parsed_response = copy.deepcopy(parsed_response)
+        clean_parsed_response = self.clean_creds("response", clean_parsed_response)
 
         if "attachmentdata" in str(body):
             logging.info(f"response with status code {response.status_code} for request to {response.url}")
