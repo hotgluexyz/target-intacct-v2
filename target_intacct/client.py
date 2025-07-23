@@ -7,6 +7,7 @@ import re
 import uuid
 from typing import Dict, List, Union
 from urllib.parse import unquote
+import xml
 
 import requests
 import singer
@@ -23,6 +24,8 @@ from target_intacct.exceptions import (
     NotFoundItemError,
     SageIntacctSDKError,
     WrongParamsError,
+    TemporaryServerError,
+    InvalidXMLResponseError
 )
 
 from .const import GET_BY_DATE_FIELD, INTACCT_OBJECTS
@@ -143,7 +146,7 @@ class SageIntacctSDK:
 
     @singer.utils.ratelimit(10, 1)
     # backoff this function, min time to wait is 5 second, max is 10 seconds
-    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException), max_tries=5, base=3)
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, TemporaryServerError, InvalidXMLResponseError), max_tries=5, base=3)
     def _post_request(self, dict_body: dict, api_url: str) -> Dict:
         """
         Create a HTTP post request.
@@ -165,10 +168,15 @@ class SageIntacctSDK:
 
         if not "attachmentdata" in str(body):
             logging.info(f"Raw response {clean_body} with status code {response.status_code}")
+        
+        if response.status_code in [503, 504]:
+            raise TemporaryServerError(f"Server temporarily unavailable (HTTP {response.status_code})", response.text)
 
         try:
             parsed_xml = xmltodict.parse(response.text)
             parsed_response = json.loads(json.dumps(parsed_xml))
+        except xml.parsers.expat.ExpatError:
+            raise InvalidXMLResponseError(f"Error: {response.text}, Status code: {response.status_code}")
         except:
             raise Exception(f"Error: {response.text}, Status code: {response.status_code}")
         
