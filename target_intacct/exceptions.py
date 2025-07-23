@@ -42,3 +42,9 @@ class NotFoundItemError(SageIntacctSDKError):
 
 class InternalServerError(SageIntacctSDKError):
     """The rest SageIntacctSDK errors, 500 error."""
+
+class TemporaryServerError(SageIntacctSDKError):
+    """Temporary server errors that should be retried, like 503 Service Unavailable."""
+
+class InvalidXMLResponseError(SageIntacctSDKError):
+    """Invalid XML response from the API."""
