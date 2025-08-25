@@ -84,6 +84,9 @@ class SageIntacctSDK:
             location_id=self.__location_id
         )
 
+    @singer.utils.ratelimit(10, 1)
+    # backoff this function, min time to wait is 5 second, max is 10 seconds
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, TemporaryServerError, InvalidXMLResponseError), max_tries=5, base=3)
     def _set_session_id(self, user_id: str, company_id: str, user_password: str, location_id = None):
         """
         Sets the session id for APIs
@@ -144,9 +147,6 @@ class SageIntacctSDK:
         
         return request_body
 
-    @singer.utils.ratelimit(10, 1)
-    # backoff this function, min time to wait is 5 second, max is 10 seconds
-    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, TemporaryServerError, InvalidXMLResponseError), max_tries=5, base=3)
     def _post_request(self, dict_body: dict, api_url: str) -> Dict:
         """
         Create a HTTP post request.
@@ -162,7 +162,12 @@ class SageIntacctSDK:
         api_headers = {"content-type": "application/xml"}
         api_headers.update(self.__headers)
         body = xmltodict.unparse(dict_body).encode('utf-8')
-        response = requests.post(api_url, headers=api_headers, data=body)
+        try:
+            # 60 seconds timeout to overcome hanging requests
+            response = requests.post(api_url, headers=api_headers, data=body, timeout=60)
+        except requests.exceptions.Timeout as e:
+            # Raise a TemporaryServerError if the request times out and we should retry
+            raise TemporaryServerError(f"Request timed out: {e}")
 
         clean_body = self.clean_creds("request", dict_body)
 
@@ -288,6 +293,9 @@ class SageIntacctSDK:
 
         return errormessages
 
+    @singer.utils.ratelimit(10, 1)
+    # backoff this function, min time to wait is 5 second, max is 10 seconds
+    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, TemporaryServerError, InvalidXMLResponseError), max_tries=5, base=3)
     def format_and_send_request(self, data: Dict, use_payload=False) -> Union[List, Dict]:
         """
         Format data accordingly to convert them to xml.
