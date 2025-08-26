@@ -913,10 +913,10 @@ class BillPaymentsSink(intacctSink):
             # Parse it from ISO
             payment_date = datetime.strptime(payment_date, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%m/%d/%Y")
 
-        if not record.get("accountName"):
-            return {"error": "accountName is a required field"}
+        if not record.get("accountNumber"):
+            return {"error": "accountNumber is a required field"}
 
-        bank_name = record["accountName"]
+        bank_name = record["accountNumber"]
         # TODO: not sure why we need this
         if "--" in bank_name:
             bank_name = bank_name.split("--")[0]
