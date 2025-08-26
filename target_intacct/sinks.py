@@ -875,7 +875,7 @@ class BillPaymentsSink(intacctSink):
         - paymentDate
         - amount
         - currency
-        - accountName
+        - accountNumber
         - vendorId
         - vendorName
 
