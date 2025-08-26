@@ -193,7 +193,6 @@ class intacctSink(RecordSink):
     def get_employee_id_by_recordno(self, recordno):
         employee = self.client.query_entity(
             object_type="employees",
-                bill_number=None,
                 fields={
                     "RECORDNO",
                     "EMPLOYEEID",
@@ -821,50 +820,110 @@ class intacctSink(RecordSink):
             self.banks = banks
         return self.banks
 
-    def query_bill(self, bill_number):
-        if self.items is None:
-            # Lookup for Bills
-            bills = self.client.query_entity(
-                object_type="accounts_payable_bills",
-                bill_number=bill_number,
-                fields={
-                    "RECORDNO",
-                    "VENDORNAME",
-                    "VENDORID",
-                    "RECORDID",
-                    "DOCNUMBER",
-                    "CURRENCY",
-                    "TRX_TOTALDUE",
-                },
-                filters={"equalto": {"field": "RECORDNO", "value": f"{bill_number}"}},
-            )
-        return bills
 
-    def pay_bill(self, record):
-        if not record.get("billId"):
-            raise Exception("billId is a required field")
+    def process_record(self, record: dict, context: dict) -> None:
+
+        if self.stream_name == "Suppliers":
+            self.suppliers_upload(record)
+        if self.stream_name == "PurchaseInvoices":
+            self.purchase_invoices_upload(record)
+        if self.stream_name == "Bills":
+            self.bills_upload(record)
+        if self.stream_name == "JournalEntries":
+            self.journal_entries_upload(record)
+        if self.stream_name == "APAdjustment":
+            self.apadjustment_upload(record)
+        if self.stream_name == "PurchaseOrders":
+            self.purchase_orders_upload(record)
+
+
+class BillPaymentsSink(intacctSink):
+    name = "BillPayments"
+
+
+
+    def query_bill(self, filters: list[dict]):
+        if not filters:
+            raise Exception("No filters provided")
+
+        filter_clause = {"and": {
+            "equalto": filters
+        }} if len(filters) > 1 else {"equalto": filters[0]}
+
+        # Lookup for Bills
+        return self.client.query_entity(
+            object_type="accounts_payable_bills",
+            fields={
+                "RECORDNO",
+                "VENDORNAME",
+                "VENDORID",
+                "RECORDID",
+                "DOCNUMBER",
+                "CURRENCY",
+                "TRX_TOTALDUE",
+            },
+            filters=filter_clause,
+        )
+
+    def preprocess_record(self, record: dict, context: dict) -> dict:
+        """
+        Transforms the record from Unified V2 BillPayment format into Intacct payload
+
+        Supported fields:
+        - billId
+        - billNumber
+        - paymentDate
+        - amount
+        - currency
+        - accountName
+        - vendorId
+        - vendorName
+
+
+        NOT UNIFIED but supported: paymentMethod
+        """
+
+        bill_filters = []
+        if record.get("billId"):
+            bill_filters.append({"field": "RECORDID", "value": f"{record['billId']}"})
+        if record.get("billNumber"):
+            bill_filters.append({"field": "RECORDNO", "value": f"{record['billNumber']}"})
+        if record.get("vendorId"):
+            bill_filters.append({"field": "VENDORID", "value": f"{record['vendorId']}"})
+        if record.get("vendorName"):
+            bill_filters.append({"field": "VENDORNAME", "value": f"{record['vendorName']}"})
 
         # Get the bill with the id
-        bill = self.query_bill(record["billId"])
-        if not bill:
-            raise Exception(f"No bill with id={record['billId']} found.")
+        bills = self.query_bill(bill_filters)
+
+        if not bills:
+            raise Exception(f"No bill for record {record} found.")
+
+        if len(bills) > 1:
+            raise Exception(f"Multiple bills matched for record {record} found. Add additional fields to the payload to filter the bill.")
+
+        bill = bills[0]
 
         # If no payment date is set, we fall back to today
         payment_date = record.get("paymentDate")
 
         if payment_date is None:
             payment_date = datetime.today().strftime("%m/%d/%Y")
+        elif "T" in payment_date:
+            # Parse it from ISO
+            payment_date = datetime.strptime(payment_date, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%m/%d/%Y")
 
-        if not record.get("bankAccountName"):
-            raise Exception("bankAccountName is a required field")
+        if not record.get("accountName"):
+            return {"error": "accountName is a required field"}
 
-        bank_name = record["bankAccountName"]
+        bank_name = record["accountName"]
         # TODO: not sure why we need this
         if "--" in bank_name:
             bank_name = bank_name.split("--")[0]
 
         if not record.get("paymentMethod"):
-            raise Exception("paymentMethod is a required field")
+            return {"error": "paymentMethod is a required field"}
+
 
         payload = {
             "FINANCIALENTITY": bank_name,
@@ -879,24 +938,15 @@ class intacctSink(RecordSink):
                 }
             },
         }
-        data = {
-            "create": {"object": "accounts_payable_payments", "APPYMT": payload}
-        }
+
+        return payload
+
+
+    def process_record(self, record, context):
+        """Process the record."""
+        if record.get("error"):
+            raise Exception(record["error"])
+
+        data = {"create": {"object": "accounts_payable_payments", "APPYMT": record}}
         self.client.format_and_send_request(data)
 
-    def process_record(self, record: dict, context: dict) -> None:
-
-        if self.stream_name == "Suppliers":
-            self.suppliers_upload(record)
-        if self.stream_name == "PurchaseInvoices":
-            self.purchase_invoices_upload(record)
-        if self.stream_name == "Bills":
-            self.bills_upload(record)
-        if self.stream_name == "JournalEntries":
-            self.journal_entries_upload(record)
-        if self.stream_name == "BillPayment":
-            self.pay_bill(record)
-        if self.stream_name == "APAdjustment":
-            self.apadjustment_upload(record)
-        if self.stream_name == "PurchaseOrders":
-            self.purchase_orders_upload(record)
