@@ -932,14 +932,17 @@ class BillPaymentsSink(intacctSink):
         if record.get("vendorName"):
             bill_filters.append({"field": "VENDORNAME", "value": f"{record['vendorName']}"})
 
+        if not bill_filters:
+            return {"error": "No bill identifiers provided on payment record."}
+
         # Get the bill with the id
         bills = self.query_bill(bill_filters)
 
         if not bills:
-            raise Exception(f"No bill for record {record} found.")
+            return {"error": f"No bill for record {record} found."}
 
         if len(bills) > 1:
-            raise Exception(f"Multiple bills matched for record {record} found. Add additional fields to the payload to filter the bill.")
+            return {"error": f"Multiple bills matched for record {record} found. Add additional fields to the payload to filter the bill."}
 
         bill = bills[0]
 
@@ -947,7 +950,7 @@ class BillPaymentsSink(intacctSink):
         payment_date = record.get("paymentDate")
 
         if payment_date is None:
-            payment_date = datetime.today().strftime("%Y-%m-%d")
+            payment_date = datetime.today().strftime("%m/%d/%Y")
         elif isinstance(payment_date, str):
             # Parse it from ISO
             payment_date = datetime.strptime(payment_date.split("T")[0], "%Y-%m-%d").strftime("%m/%d/%Y")
