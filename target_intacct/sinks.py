@@ -947,10 +947,12 @@ class BillPaymentsSink(intacctSink):
         payment_date = record.get("paymentDate")
 
         if payment_date is None:
-            payment_date = datetime.today().strftime("%m/%d/%Y")
-        elif "T" in payment_date:
+            payment_date = datetime.today().strftime("%Y-%m-%d")
+        elif isinstance(payment_date, str):
             # Parse it from ISO
-            payment_date = datetime.strptime(payment_date, "%Y-%m-%dT%H:%M:%S.%fZ").strftime("%m/%d/%Y")
+            payment_date = datetime.strptime(payment_date.split("T")[0], "%Y-%m-%d").strftime("%m/%d/%Y")
+        elif isinstance(payment_date, datetime):
+            payment_date = payment_date.strftime("%m/%d/%Y")
 
         if not record.get("accountNumber"):
             return {"error": "accountNumber is a required field"}
