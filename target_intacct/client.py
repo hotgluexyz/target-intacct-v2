@@ -84,6 +84,20 @@ class SageIntacctSDK:
             location_id=self.__location_id
         )
 
+    @backoff.on_exception(
+        backoff.expo,
+        (
+            ConnectionError,
+            ConnectionResetError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.RequestException,
+            InternalServerError,
+            TemporaryServerError
+        ),
+        max_tries=8,
+        factor=3,
+    )
+    @singer.utils.ratelimit(10, 1)
     def _set_session_id(self, user_id: str, company_id: str, user_password: str, location_id = None):
         """
         Sets the session id for APIs
@@ -144,9 +158,6 @@ class SageIntacctSDK:
         
         return request_body
 
-    @singer.utils.ratelimit(10, 1)
-    # backoff this function, min time to wait is 5 second, max is 10 seconds
-    @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException, TemporaryServerError, InvalidXMLResponseError), max_tries=5, base=3)
     def _post_request(self, dict_body: dict, api_url: str) -> Dict:
         """
         Create a HTTP post request.
@@ -288,6 +299,20 @@ class SageIntacctSDK:
 
         return errormessages
 
+    @backoff.on_exception(
+        backoff.expo,
+        (
+            ConnectionError,
+            ConnectionResetError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.RequestException,
+            InternalServerError,
+            TemporaryServerError
+        ),
+        max_tries=8,
+        factor=3,
+    )
+    @singer.utils.ratelimit(10, 1)
     def format_and_send_request(self, data: Dict, use_payload=False) -> Union[List, Dict]:
         """
         Format data accordingly to convert them to xml.
@@ -298,22 +323,23 @@ class SageIntacctSDK:
         Returns:
             A response from the _post_request (dict).
         """
-        key = next(iter(data))
+        _data = data.copy()
+        key = next(iter(_data))
         try:
-            object_type = data[key]["object"]
+            object_type = _data[key]["object"]
         except:
-            object_type = data[key]["@object"]
-        logging.info(f"Creating request with object_type: {object_type} and action {data[key]}")
+            object_type = _data[key]["@object"]
+        logging.info(f"Creating request with object_type: {object_type} and action {_data[key]}")
 
         # Remove object entry if unnecessary
         if "create" in key or "update" in key or "delete" in key or key in ["create", "update", "delete"]:
-            data[key].pop("object", None)
+            _data[key].pop("object", None)
 
         timestamp = dt.datetime.now()
 
-        payload_data = data[key]
+        payload_data = _data[key]
         if use_payload:
-            payload_data = data[key][object_type.upper()]
+            payload_data = _data[key][object_type.upper()]
 
         dict_body = {
             "request": {
