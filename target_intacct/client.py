@@ -173,7 +173,12 @@ class SageIntacctSDK:
         api_headers = {"content-type": "application/xml"}
         api_headers.update(self.__headers)
         body = xmltodict.unparse(dict_body).encode('utf-8')
-        response = requests.post(api_url, headers=api_headers, data=body)
+        try:
+            # 60 seconds timeout to overcome hanging requests
+            response = requests.post(api_url, headers=api_headers, data=body, timeout=60)
+        except requests.exceptions.Timeout as e:
+            # Raise a TemporaryServerError if the request times out and we should retry
+            raise TemporaryServerError(f"Request timed out: {e}")
 
         clean_body = self.clean_creds("request", dict_body)
 
