@@ -185,6 +185,21 @@ class SageIntacctSDK:
         if not "attachmentdata" in str(body):
             logging.info(f"Raw response {clean_body} with status code {response.status_code}")
         
+        # Check for Cloudflare or other HTML error pages
+        if response.status_code >= 500 and "<!DOCTYPE html>" in response.text:
+            if "Error code 500" in response.text:
+                logging.error("Received Cloudflare 500 error page instead of XML response")
+                raise TemporaryServerError(
+                    "Cloudflare returned a 500 error - the Sage Intacct API server may be experiencing issues",
+                    "Trying again!"
+                )
+            else:
+                logging.error(f"Received HTML error page instead of XML response (status code: {response.status_code})")
+                raise TemporaryServerError(
+                    f"Received HTML error page instead of XML response (HTTP {response.status_code})",
+                    response.text
+                )
+
         if response.status_code in [503, 504]:
             raise TemporaryServerError(f"Server temporarily unavailable (HTTP {response.status_code})", response.text)
 
