@@ -493,7 +493,7 @@ class SageIntacctSDK:
         return response
 
     def query_entity(
-        self, object_type: str, bill_number: str, fields: dict, filters={}
+        self, object_type: str, fields: set[str], filters={}
     ):
         """
         Get a sample of data from an endpoint, useful for determining schemas.
@@ -512,8 +512,10 @@ class SageIntacctSDK:
             data["query"].update({"filter": filters})
 
         entities = self.format_and_send_request(data)
+        
         if int(entities["data"]["@totalcount"]) > 0:
-            return entities["data"][intacct_object_type]
+            objects = entities["data"][intacct_object_type]
+            return objects if isinstance(objects, list) else [objects]
         else:
             return None
 

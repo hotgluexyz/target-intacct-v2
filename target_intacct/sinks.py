@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, List, Mapping, Optional, Union
-
+from target_hotglue.client import HotglueSink
 from singer_sdk.plugin_base import PluginBase
 from singer_sdk.sinks import RecordSink
 
@@ -16,7 +16,7 @@ import re
 # import xmltodict
 
 
-class intacctSink(RecordSink):
+class intacctSink(HotglueSink):
     """intacct target sink class."""
 
     def __init__(
@@ -26,6 +26,8 @@ class intacctSink(RecordSink):
         schema: Dict,
         key_properties: Optional[List[str]],
     ) -> None:
+        self._state = dict(target._state)
+        self._target = target
         super().__init__(target, stream_name, schema, key_properties)
 
         self.target_name = "intacct-v2"
@@ -54,6 +56,15 @@ class intacctSink(RecordSink):
         self.departments = None
         self.customers = None
         self.journal_entries = None
+
+
+    @property
+    def name(self):
+        return self.stream_name
+
+    def preprocess_record(self, record: dict, context: dict) -> dict:
+        """Preprocess the record."""
+        return record
 
     def get_vendors(self):
         # Lookup for vendors
@@ -193,7 +204,6 @@ class intacctSink(RecordSink):
     def get_employee_id_by_recordno(self, recordno):
         employee = self.client.query_entity(
             object_type="employees",
-                bill_number=None,
                 fields={
                     "RECORDNO",
                     "EMPLOYEEID",
@@ -322,7 +332,10 @@ class intacctSink(RecordSink):
 
         payload.pop("LOCATIONNAME", None)
 
-        payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+        if isinstance(payload["WHENCREATED"], datetime):
+            payload["WHENCREATED"] = payload["WHENCREATED"].strftime("%Y-%m-%d")
+        else:
+            payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
         if bill:
             payload.update(bill)
@@ -331,7 +344,9 @@ class intacctSink(RecordSink):
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         try:
-            self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(data)
+            record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
+            return record_number, True, {}
         except Exception as e:
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
@@ -469,7 +484,10 @@ class intacctSink(RecordSink):
                 [item.update({cf.get("name"): cf.get("value")}) for cf in custom_fields]
 
         if payload.get("WHENCREATED"):
-            payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
+            if isinstance(payload["WHENCREATED"], datetime):
+                payload["WHENCREATED"] = payload["WHENCREATED"].strftime("%Y-%m-%d")
+            else:
+                payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
         else:
             payload["WHENCREATED"] = datetime.now().strftime("%Y-%m-%d")
 
@@ -480,7 +498,9 @@ class intacctSink(RecordSink):
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
 
         try:
-            self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(data)
+            record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
+            return record_number, response.get("status") == "success", {}
         except Exception as e:
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
@@ -554,6 +574,7 @@ class intacctSink(RecordSink):
         data = {"create": {"object": "GLBATCH", "GLBATCH": payload}}
 
         self.client.format_and_send_request(data)
+        return None, True, {}
 
     def suppliers_upload(self, record):
         # Format data
@@ -578,10 +599,12 @@ class intacctSink(RecordSink):
                     not payload["NAME"] in self.vendors.keys()
                 ):
                     self.client.format_and_send_request(data)
+                    return vendor_id, True, {}
             else:
-                self.logger.info(f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted")
+                raise Exception(f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted")
         else:
-            self.logger.info(f"Skipping vendor {payload} because vendorid is empty")
+            raise Exception("Skipping vendor {payload} because vendorid is empty")
+            
 
     def apadjustment_upload(self, record):
         # Format data
@@ -691,7 +714,10 @@ class intacctSink(RecordSink):
                 ordered_payload[key] = "Intacct Daily Rate"
 
         data = {"create_apadjustment": {"object": "apadjustment", "APADJUSTMENT": ordered_payload}}
-        self.client.format_and_send_request(data, use_payload=True)
+        response = self.client.format_and_send_request(data, use_payload=True)
+        key = response.get("key")
+        return key, response.get("status") == "success", {}
+
 
     def purchase_orders_upload(self, record):
         # Format data
@@ -808,7 +834,17 @@ class intacctSink(RecordSink):
         else:
             data = {"create_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
 
-        self.client.format_and_send_request(data, use_payload=True)
+        result = self.client.format_and_send_request(data, use_payload=True)
+
+        if order: 
+            # Upsert
+            return order.get("RECORDNO"), result.get("status") == "success", {}
+        else:
+            # Doc number is returned as Purchase Order-DOCNO
+            # Need to interchange DOCNO with RECORDNO
+            docno = result.get("key", "").split("-")[1]
+            order = self.client.get_entity(object_type="purchase_orders", fields=["DOCNO"], filter={"filter": {"equalto":{"field":"DOCNO","value": docno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
+            return order.get("RECORDNO"), result.get("status") == "success", {}
 
 
     def get_banks(self):
@@ -821,50 +857,117 @@ class intacctSink(RecordSink):
             self.banks = banks
         return self.banks
 
-    def query_bill(self, bill_number):
-        if self.items is None:
-            # Lookup for Bills
-            bills = self.client.query_entity(
-                object_type="accounts_payable_bills",
-                bill_number=bill_number,
-                fields={
-                    "RECORDNO",
-                    "VENDORNAME",
-                    "VENDORID",
-                    "RECORDID",
-                    "DOCNUMBER",
-                    "CURRENCY",
-                    "TRX_TOTALDUE",
-                },
-                filters={"equalto": {"field": "RECORDNO", "value": f"{bill_number}"}},
-            )
-        return bills
 
-    def pay_bill(self, record):
-        if not record.get("billId"):
-            raise Exception("billId is a required field")
+    def upsert_record(self, record: dict, context: dict) -> None:
+
+        if self.stream_name == "Suppliers":
+            id, success, state = self.suppliers_upload(record)
+        if self.stream_name == "PurchaseInvoices":
+            id, success, state = self.purchase_invoices_upload(record)
+        if self.stream_name == "Bills":
+            id, success, state = self.bills_upload(record)
+        if self.stream_name == "JournalEntries":
+            id, success, state = self.journal_entries_upload(record)
+        if self.stream_name == "APAdjustment":
+            id, success, state = self.apadjustment_upload(record)
+        if self.stream_name == "PurchaseOrders":
+            id, success, state = self.purchase_orders_upload(record)
+
+        return id, success, state
+
+
+class BillPaymentsSink(intacctSink):
+    name = "BillPayments"
+
+
+
+    def query_bill(self, filters: list[dict]):
+        if not filters:
+            raise Exception("No filters provided")
+
+        filter_clause = {"and": {
+            "equalto": filters
+        }} if len(filters) > 1 else {"equalto": filters[0]}
+
+        # Lookup for Bills
+        return self.client.query_entity(
+            object_type="accounts_payable_bills",
+            fields={
+                "RECORDNO",
+                "VENDORNAME",
+                "VENDORID",
+                "RECORDID",
+                "DOCNUMBER",
+                "CURRENCY",
+                "TRX_TOTALDUE",
+            },
+            filters=filter_clause,
+        )
+
+    def preprocess_record(self, record: dict, context: dict) -> dict:
+        """
+        Transforms the record from Unified V2 BillPayment format into Intacct payload
+
+        Supported fields:
+        - billId
+        - billNumber
+        - paymentDate
+        - amount
+        - currency
+        - accountNumber
+        - vendorId
+        - vendorName
+
+
+        NOT UNIFIED but supported: paymentMethod
+        """
+
+        bill_filters = []
+        if record.get("billNumber"):
+            bill_filters.append({"field": "RECORDID", "value": f"{record['billNumber']}"})
+        if record.get("billId"):
+            bill_filters.append({"field": "RECORDNO", "value": f"{record['billId']}"})
+        if record.get("vendorId"):
+            bill_filters.append({"field": "VENDORID", "value": f"{record['vendorId']}"})
+        if record.get("vendorName"):
+            bill_filters.append({"field": "VENDORNAME", "value": f"{record['vendorName']}"})
+
+        if not bill_filters:
+            return {"error": "No bill identifiers provided on payment record."}
 
         # Get the bill with the id
-        bill = self.query_bill(record["billId"])
-        if not bill:
-            raise Exception(f"No bill with id={record['billId']} found.")
+        bills = self.query_bill(bill_filters)
+
+        if not bills:
+            return {"error": f"No bill for record {record} found."}
+
+        if len(bills) > 1:
+            return {"error": f"Multiple bills matched for record {record} found. Add additional fields to the payload to filter the bill."}
+
+        bill = bills[0]
 
         # If no payment date is set, we fall back to today
         payment_date = record.get("paymentDate")
 
         if payment_date is None:
             payment_date = datetime.today().strftime("%m/%d/%Y")
+        elif isinstance(payment_date, str):
+            # Parse it from ISO
+            payment_date = datetime.strptime(payment_date.split("T")[0], "%Y-%m-%d").strftime("%m/%d/%Y")
+        elif isinstance(payment_date, datetime):
+            payment_date = payment_date.strftime("%m/%d/%Y")
 
-        if not record.get("bankAccountName"):
-            raise Exception("bankAccountName is a required field")
+        if not record.get("accountNumber"):
+            return {"error": "accountNumber is a required field"}
 
-        bank_name = record["bankAccountName"]
+        bank_name = record["accountNumber"]
         # TODO: not sure why we need this
         if "--" in bank_name:
             bank_name = bank_name.split("--")[0]
 
         if not record.get("paymentMethod"):
-            raise Exception("paymentMethod is a required field")
+            return {"error": "paymentMethod is a required field"}
+
 
         payload = {
             "FINANCIALENTITY": bank_name,
@@ -879,24 +982,23 @@ class intacctSink(RecordSink):
                 }
             },
         }
-        data = {
-            "create": {"object": "accounts_payable_payments", "APPYMT": payload}
-        }
-        self.client.format_and_send_request(data)
 
-    def process_record(self, record: dict, context: dict) -> None:
+        return payload
 
-        if self.stream_name == "Suppliers":
-            self.suppliers_upload(record)
-        if self.stream_name == "PurchaseInvoices":
-            self.purchase_invoices_upload(record)
-        if self.stream_name == "Bills":
-            self.bills_upload(record)
-        if self.stream_name == "JournalEntries":
-            self.journal_entries_upload(record)
-        if self.stream_name == "BillPayment":
-            self.pay_bill(record)
-        if self.stream_name == "APAdjustment":
-            self.apadjustment_upload(record)
-        if self.stream_name == "PurchaseOrders":
-            self.purchase_orders_upload(record)
+
+    def upsert_record(self, record, context):
+        """Process the record."""
+
+        state = {}
+        if record.get("error"):
+            state["error"] = record["error"]
+            return None, False, state
+
+        data = {"create": {"object": "accounts_payable_payments", "APPYMT": record}}
+        response = self.client.format_and_send_request(data)
+        record_number = response.get("data", {}).get("appymt", {}).get("RECORDNO")
+
+
+
+        return record_number, True, state
+
