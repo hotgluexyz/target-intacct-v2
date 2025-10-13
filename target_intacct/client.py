@@ -235,7 +235,7 @@ class SageIntacctSDK:
                     parsed_response["response"]["errormessage"]
                 )
                 raise WrongParamsError(
-                    "Some of the parameters are wrong", exception_msg
+                    "Some of the parameters are wrong. Raw response text:" + response.text, exception_msg
                 )
 
             if api_response["authentication"]["status"] == "failure":
@@ -248,7 +248,9 @@ class SageIntacctSDK:
                 return api_response
 
         if response.status_code == 400:
-            raise WrongParamsError("Some of the parameters are wrong", error)
+            raise WrongParamsError(
+                "Some of the parameters are wrong. Raw response text:" + response.text, error
+            )
 
         if response.status_code == 401:
             raise InvalidTokenError(

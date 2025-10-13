@@ -724,6 +724,9 @@ class intacctSink(HotglueSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_orders", self.target_name)
 
+        if not payload.get("vendorid"):
+            raise Exception("vendorid is required")
+
         payload["transactiontype"] = "Purchase Order"
 
         # Check if the invoice exists
