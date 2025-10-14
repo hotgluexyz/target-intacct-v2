@@ -839,7 +839,7 @@ class intacctSink(HotglueSink):
             if item.get("projectid") and item.get("projectid") in self.projects_recordno.keys():
                 item["projectid"] = self.projects_recordno.get(item.get("projectid"))
             elif item.get("projectid") and item.get("projectid") in self.projects.values():
-                item["projectid"] = self.projects.get(item.get("projectid"))
+                item["projectid"] = item.get("projectid")
             elif item.get("projectid"):
                 return None, False, {
                     "error": f"ERROR: Project {item.get('projectid')} does not exist. Did you mean any of these: {list(self.projects.values())}?"
