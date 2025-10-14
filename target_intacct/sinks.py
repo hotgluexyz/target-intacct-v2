@@ -84,13 +84,14 @@ class intacctSink(HotglueSink):
             self.classes = self.dictify(classes, "NAME", "CLASSID")
         return self.classes
 
-    def get_projects(self):
+    def get_projects(self): 
         # Lookup for vendors
         if self.projects is None:
             projects = self.client.get_entity(
-                object_type="projects", fields=["PROJECTID", "NAME"]
+                object_type="projects", fields=["RECORDNO", "PROJECTID", "NAME"]
             )
             self.projects = self.dictify(projects, "NAME", "PROJECTID")
+            self.projects_recordno = self.dictify(projects, "RECORDNO", "PROJECTID")
         return self.projects
 
     def get_locations(self):
@@ -127,9 +128,10 @@ class intacctSink(HotglueSink):
         if self.items is None:
             # Lookup for items
             items = self.client.get_entity(
-                object_type="item", fields=["ITEMID", "NAME"]
+                object_type="item", fields=["RECORDNO", "ITEMID", "NAME"]
             )
             self.items = self.dictify(items, "NAME", "ITEMID")
+            self.items_recordno = self.dictify(items, "RECORDNO", "ITEMID")
         return self.items
 
     def get_customers(self):
@@ -724,9 +726,6 @@ class intacctSink(HotglueSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_orders", self.target_name)
 
-        if not payload.get("vendorid"):
-            raise Exception("vendorid is required")
-
         payload["transactiontype"] = "Purchase Order"
 
         # Check if the invoice exists
@@ -745,7 +744,7 @@ class intacctSink(HotglueSink):
             try:
                 payload["vendorid"] = self.vendors[vendor_name]
             except:
-                return {
+                return None, False, {
                     "error": f"ERROR: Vendor {vendor_name} does not exist. Did you mean any of these: {list(self.vendors.keys())}?"
                 }
 
@@ -792,7 +791,7 @@ class intacctSink(HotglueSink):
                 try:
                     item["departmentid"] = self.departments[department_name]
                 except:
-                    return {
+                    return None, False, {
                         "error": f"ERROR: Department {department_name} does not exist. Did you mean any of these: {list(self.departments.keys())}?"
                     }
                 
@@ -802,9 +801,18 @@ class intacctSink(HotglueSink):
                 try:
                     item["projectid"] = self.projects[project_name]
                 except:
-                    return {
+                    return None, False, {
                         "error": f"ERROR: Project {project_name} does not exist. Did you mean any of these: {list(self.projects.keys())}?"
                     }
+
+            if item.get("projectid") and item.get("projectid") in self.projects_recordno.keys():
+                item["projectid"] = self.projects_recordno.get(item.get("projectid"))
+            elif item.get("projectid") and item.get("projectid") in self.projects.values():
+                item["projectid"] = self.projects.get(item.get("projectid"))
+            elif item.get("projectid"):
+                return None, False, {
+                    "error": f"ERROR: Project {item.get('projectid')} does not exist. Did you mean any of these: {list(self.projects.values())}?"
+                }
                 
             self.get_classes()
             class_name = item.pop("classname", None)
@@ -812,9 +820,24 @@ class intacctSink(HotglueSink):
                 try:
                     item["classid"] = self.classes[class_name]
                 except:
-                    return {
+                    return None, False, {
                         "error": f"ERROR: Class {class_name} does not exist. Did you mean any of these: {list(self.classes.keys())}?"
                     }
+
+            self.get_items()
+            if item.get("itemid") and self.items_recordno.get(item.get("itemid")):
+                item["itemid"] = self.items_recordno.get(item.get("itemid"))
+            elif item.get("itemname") and self.items.get(item.get("itemname")):
+                item["itemid"] = self.items.get(item.get("itemname"))
+            elif item.get("itemid") and item.get("itemid") in self.items.values():
+                item["itemid"] = item.get("itemid")
+            elif item.get("itemid"):
+                return None, False, {
+                    "error": f"ERROR: Product {item.get('itemid')} or {item.get('itemname')} does not exist. Did you mean any of these: {list(self.items.values())}?"
+                }
+
+
+
 
         key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
         payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
