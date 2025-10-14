@@ -54,6 +54,7 @@ class intacctSink(HotglueSink):
         self.classes = None
         self.projects = None
         self.departments = None
+        self.po_transaction_types = None
         self.customers = None
         self.journal_entries = None
 
@@ -123,6 +124,32 @@ class intacctSink(HotglueSink):
             )
             self.departments = self.dictify(departments, "TITLE", "DEPARTMENTID")
         return self.departments
+
+    def get_po_transaction_types(self):
+        if self.po_transaction_types is None:
+            # Lookup for accounts
+            self.po_transaction_types = self.client.get_entity(
+                object_type="po_transaction_types",
+                fields=["DOCID", "DOCCLASS"],
+            )
+        return self.po_transaction_types
+
+    def get_po_transaction_type(self):
+        override_po_transaction_type = self._target.config.get("po_transaction_type", None)
+        if override_po_transaction_type:
+            return override_po_transaction_type
+        
+        po_transaction_types = self.get_po_transaction_types()
+        po_transaction_type = next(
+            (po_transaction_type.get("DOCID") for po_transaction_type in po_transaction_types
+                if po_transaction_type.get("DOCCLASS") == "Order"
+                and po_transaction_type["DOCID"].lower().replace(" ", "") == "purchaseorder"),
+                None)
+        
+        if not po_transaction_type:
+            raise Exception("No purchase order transaction type found. Please configure the po_transaction_type in the config.json file.")
+        
+        return po_transaction_type
 
     def get_items(self):
         if self.items is None:
@@ -726,7 +753,11 @@ class intacctSink(HotglueSink):
         mapping = UnifiedMapping()
         payload = mapping.prepare_payload(record, "purchase_orders", self.target_name)
 
-        payload["transactiontype"] = "Purchase Order"
+        if not payload.get("vendorid"):
+            raise Exception("vendorid is required")
+
+        payload["transactiontype"] = self.get_po_transaction_type()
+
 
         # Check if the invoice exists
         order = None
