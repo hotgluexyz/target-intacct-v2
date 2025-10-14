@@ -35,7 +35,8 @@ INTACCT_OBJECTS = {
     "payment_provider_bank_accounts": "PROVIDERBANKACCOUNT",
     "employees": "EMPLOYEE",
     "purchase_orders": "PODOCUMENT",
-    "purchase_orders_entry": "PODOCUMENTENTRY"
+    "purchase_orders_entry": "PODOCUMENTENTRY",
+    "po_transaction_types": "PODOCUMENTPARAMS"
 }
 
 GET_BY_DATE_FIELD = "WHENMODIFIED"
