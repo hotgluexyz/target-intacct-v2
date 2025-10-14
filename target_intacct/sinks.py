@@ -727,7 +727,7 @@ class intacctSink(HotglueSink):
         if not payload.get("vendorid"):
             raise Exception("vendorid is required")
 
-        payload["transactiontype"] = "Purchase Order"
+        payload["transactiontype"] = self._target.config.get("po_transaction_type", "Purchase Order")
 
         # Check if the invoice exists
         order = None
