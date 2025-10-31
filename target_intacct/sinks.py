@@ -793,13 +793,18 @@ class intacctSink(HotglueSink):
                 "day": payload.get("datedue").split("-")[2],
             }
 
+         #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["supdocid"] = supdoc_id
+
         if payload.get("basecurr"):
             payload["currency"] = payload["basecurr"]
         payload["returnto"] = {"contactname": None}
         payload["payto"] = {"contactname": None}
         payload["exchratetype"] = "Intacct Daily Rate"
 
-        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "basecurr", "currency", "exchratetype", "potransitems"]
+        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "supdocid", "basecurr", "currency", "exchratetype", "potransitems"]
         payload = UnifiedMapping().order_dicts(payload, key_order)
 
         items = payload.get("potransitems").get("potransitem", [])
@@ -891,18 +896,25 @@ class intacctSink(HotglueSink):
         else:
             data = {"create_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
 
-        result = self.client.format_and_send_request(data, use_payload=True)
+        try:
+            result = self.client.format_and_send_request(data, use_payload=True)
 
-        if order: 
-            # Upsert
-            return order.get("RECORDNO"), result.get("status") == "success", {}
-        else:
-            # Doc number is returned as Purchase Order-DOCNO
-            # Need to interchange DOCNO with RECORDNO
-            docno = result.get("key", "").split("-")[1]
-            order = self.client.get_entity(object_type="purchase_orders", fields=["DOCNO"], filter={"filter": {"equalto":{"field":"DOCNO","value": docno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
-            return order.get("RECORDNO"), result.get("status") == "success", {}
-
+            if order: 
+                # Upsert
+                return order.get("RECORDNO"), result.get("status") == "success", {}
+            else:
+                # Doc number is returned as Purchase Order-DOCNO
+                # Need to interchange DOCNO with RECORDNO
+                docno = result.get("key", "").split("-")[1]
+                order = self.client.get_entity(object_type="purchase_orders", fields=["DOCNO"], filter={"filter": {"equalto":{"field":"DOCNO","value": docno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
+                return order.get("RECORDNO"), result.get("status") == "success", {}
+        except Exception as e:
+            # if purchase order is new and attachments were posted, delete attachments
+            if supdoc_id and list(data.keys())[0] == "create": 
+                del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
+                self.client.format_and_send_request(del_supdoc)
+                self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
+            raise Exception(e)
 
     def get_banks(self):
         # Lookup for banks
@@ -1058,4 +1070,3 @@ class BillPaymentsSink(intacctSink):
 
 
         return record_number, True, state
-
