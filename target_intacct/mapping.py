@@ -141,8 +141,9 @@ class UnifiedMapping:
 
     def prepare_attachment_payload(self, data, action="create", existing_attachments={}):
         attachments = data.get("attachments", [])
-        invoice_number = data.get("invoiceNumber")
-        supdoc_id = str(invoice_number)[-20:].strip("-") # supdocid only allows 20 chars
+        supdoc_name = data.get("invoiceNumber", data.get("number", data.get("referenceNumber")))
+
+        supdoc_id = str(supdoc_name)[-20:].strip("-") # supdocid only allows 20 chars
 
         if isinstance(attachments, str):
             attachments = self.parse_objs(attachments)
@@ -186,7 +187,7 @@ class UnifiedMapping:
             f"{action}_supdoc": {
                 "object": "supdoc",
                 "supdocid": supdoc_id, #only 20 chars allowed
-                "supdocname": invoice_number,
+                "supdocname": supdoc_name,
                 "supdocfoldername": supdoc_id, # we name the folder the same as the supdoc for easy correlation
                 "attachments": {"attachment": filtered_attachments}
             }
