@@ -1,7 +1,6 @@
 import datetime
 import json
 import os
-import uuid
 import requests
 import base64
 import ast
