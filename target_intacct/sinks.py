@@ -319,7 +319,7 @@ class intacctSink(RecordSink):
                 item["DEPARTMENTID"] = self.departments.get(department)
             elif department_name and not item.get("DEPARTMENTID"):
                 item["DEPARTMENTID"] = self.departments.get(department_name)
-            if department_name or department and not item.get("DEPARTMENTID"):
+            if (department_name or department) and not item.get("DEPARTMENTID"):
                 raise Exception(f"ERROR: Department {department_name or department} not valid for this tenant in item {item}.")
 
         payload.pop("LOCATIONNAME", None)
