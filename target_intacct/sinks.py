@@ -352,12 +352,14 @@ class intacctSink(HotglueSink):
                 item.pop("ITEMNAME")
 
             self.get_departments()
-            if item.get("DEPARTMENT"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
-                item.pop("DEPARTMENT")
-            elif item.get("DEPARTMENTNAME"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
-                item.pop("DEPARTMENTNAME")
+            department_name = item.pop("DEPARTMENTNAME", None)
+            department = item.pop("DEPARTMENT", None)
+            if department and not item.get("DEPARTMENTID"):
+                item["DEPARTMENTID"] = self.departments.get(department)
+            elif department_name and not item.get("DEPARTMENTID"):
+                item["DEPARTMENTID"] = self.departments.get(department_name)
+            if (department_name or department) and not item.get("DEPARTMENTID"):
+                raise Exception(f"ERROR: Department {department_name or department} not valid for this tenant in item {item}.")
 
         payload.pop("LOCATIONNAME", None)
 
