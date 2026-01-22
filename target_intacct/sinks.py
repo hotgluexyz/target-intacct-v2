@@ -626,15 +626,18 @@ class intacctSink(HotglueSink):
                 data = {"create": {"object": "account_payable_vendors", "VENDOR": payload}}
 
                 self.get_vendors()
-                if (not payload["VENDORID"] in self.vendors.items()) and (
+                if (not payload["VENDORID"] in self.vendors.values()) and (
                     not payload["NAME"] in self.vendors.keys()
                 ):
-                    self.client.format_and_send_request(data)
-                    return vendor_id, True, {}
+                    response =self.client.format_and_send_request(data)
+                    record_number = response.get("data", {}).get("vendor", {}).get("RECORDNO")
+                    return record_number, True, {}
+                else:
+                    return "", False, { "error": f"Vendor {payload['NAME']} already exists" }
             else:
-                raise Exception(f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted")
+                return "", False, { "error": f"Skipping vendor with {vendor_id} due to unsupported chars. Only letters, numbers and dashes accepted" }
         else:
-            raise Exception("Skipping vendor {payload} because vendorid is empty")
+            return "", False, { "error": f"Skipping vendor {payload} because vendorid is empty" }
             
 
     def apadjustment_upload(self, record):
@@ -928,22 +931,53 @@ class intacctSink(HotglueSink):
             self.banks = banks
         return self.banks
 
+    def get_record_url(self, object, record_id, state_updates):
+        try:
+            if self.config.get("output_record_url"):
+                record_url_payload = {
+                    "query": {
+                        "object": object,
+                        "select": {"field": "RECORD_URL"},
+                        "filter": {"equalto": {"field": "RECORDNO", "value": record_id}},
+                    }
+                }
+
+                record_url = self.client.format_and_send_request(record_url_payload)
+
+                if record_url:
+                    record_url = (
+                        record_url.get("data", {}).get(object, {}).get("RECORD_URL")
+                    )
+                    state_updates["record_url"] = record_url
+        except Exception as e:
+            self.logger.error(
+                f"Failed to get record url for {object} with record_id {record_id}: {str(e)}"
+            )
+        return state_updates
+
 
     def upsert_record(self, record: dict, context: dict) -> None:
 
         if self.stream_name == "Suppliers":
             id, success, state = self.suppliers_upload(record)
+            object = "VENDOR"
         if self.stream_name == "PurchaseInvoices":
             id, success, state = self.purchase_invoices_upload(record)
+            object = "APBILL"
         if self.stream_name == "Bills":
             id, success, state = self.bills_upload(record)
+            object = "APBILL"
         if self.stream_name == "JournalEntries":
             id, success, state = self.journal_entries_upload(record)
+            object = "GLBATCH"
         if self.stream_name == "APAdjustment":
             id, success, state = self.apadjustment_upload(record)
+            object = "APADJUSTMENT"
         if self.stream_name == "PurchaseOrders":
             id, success, state = self.purchase_orders_upload(record)
+            object = "PODOCUMENT"
 
+        state = self.get_record_url(object, id, state)
         return id, success, state
 
 
@@ -1069,6 +1103,6 @@ class BillPaymentsSink(intacctSink):
         response = self.client.format_and_send_request(data)
         record_number = response.get("data", {}).get("appymt", {}).get("RECORDNO")
 
-
+        state = self.get_record_url("APPYMT", record_number, state)
 
         return record_number, True, state
