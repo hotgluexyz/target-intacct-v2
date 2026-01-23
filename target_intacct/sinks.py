@@ -935,10 +935,10 @@ class intacctSink(HotglueSink):
         try:
             if self.config.get("output_record_url"):
                 record_url_payload = {
-                    "query": {
+                    "readByQuery": {
                         "object": object,
-                        "select": {"field": "RECORD_URL"},
-                        "filter": {"equalto": {"field": "RECORDNO", "value": record_id}},
+                        "fields": "RECORD_URL",
+                        "query": f"RECORDNO = {record_id}",
                     }
                 }
 
@@ -946,7 +946,7 @@ class intacctSink(HotglueSink):
 
                 if record_url:
                     record_url = (
-                        record_url.get("data", {}).get(object, {}).get("RECORD_URL")
+                        record_url.get("data", {}).get(object.lower(), {}).get("RECORD_URL")
                     )
                     state_updates["record_url"] = record_url
         except Exception as e:
