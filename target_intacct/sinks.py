@@ -977,7 +977,8 @@ class intacctSink(HotglueSink):
             id, success, state = self.purchase_orders_upload(record)
             object = "PODOCUMENT"
 
-        state = self.get_record_url(object, id, state)
+        if success:
+            state = self.get_record_url(object, id, state)
         return id, success, state
 
 
