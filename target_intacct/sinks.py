@@ -604,8 +604,9 @@ class intacctSink(HotglueSink):
 
         data = {"create": {"object": "GLBATCH", "GLBATCH": payload}}
 
-        self.client.format_and_send_request(data)
-        return None, True, {}
+        response = self.client.format_and_send_request(data)
+        record_number = response.get("data", {}).get("glbatch", {}).get("RECORDNO")
+        return record_number, True, {}
 
     def suppliers_upload(self, record):
         # Format data
