@@ -398,8 +398,8 @@ class intacctSink(HotglueSink):
                 try:
                     self.client.format_and_send_request(del_supdoc)
                     self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
-                except Exception as e:
-                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due invoice failed while being created: {e}")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due invoice failed while being created")
             raise Exception(e)
 
     def fetch_existing_bill(self, record_id):
@@ -568,8 +568,8 @@ class intacctSink(HotglueSink):
                 try:
                     self.client.format_and_send_request(del_supdoc)
                     self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
-                except Exception as e:
-                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due bill failed while being created: {e}")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due bill failed while being created")
             raise Exception(e)
 
     def journal_entries_upload(self, record):
@@ -949,8 +949,8 @@ class intacctSink(HotglueSink):
                 try:
                     self.client.format_and_send_request(del_supdoc)
                     self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
-                except Exception as e:
-                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due purchase order failed while being created: {e}")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due purchase order failed while being created")
             raise Exception(e)
 
     def get_banks(self):
