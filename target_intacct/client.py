@@ -391,7 +391,14 @@ class SageIntacctSDK:
         with singer.metrics.http_request_timer(endpoint=object_type):
             try:
                 response = self._post_request(dict_body, self.__api_url)
-            except Exception as e:
+            except (
+                ConnectionError,
+                ConnectionResetError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
+                InternalServerError,
+                TemporaryServerError
+            ) as e:
                 if fetch_existing_entity_callback and format_existing_entity_fallback_response:
                     # wait a little, intacct might still be processing the request
                     time.sleep(60)
