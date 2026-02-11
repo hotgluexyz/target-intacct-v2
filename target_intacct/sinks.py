@@ -785,9 +785,6 @@ class intacctSink(HotglueSink):
         key = response.get("key")
         return key, response.get("status") == "success", {}
 
-    def fetch_existing_po(self, record_no):
-        return self.client.get_entity(object_type="purchase_orders", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDNO","value": record_no}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
-
     def purchase_orders_upload(self, record):
         # Format data
         mapping = UnifiedMapping()
@@ -804,7 +801,7 @@ class intacctSink(HotglueSink):
         if payload.get("RECORDNO"):
             # check if record exists
             recordno = payload.pop("RECORDNO")
-            order = self.fetch_existing_po(recordno)
+            order = self.client.get_entity(object_type="purchase_orders", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDNO","value": recordno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
             if order:
                 order_lines = self.client.get_entity(object_type="purchase_orders_entry", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"DOCHDRNO","value": recordno}}, "pagesize": "2000"}, docparid="Purchase Order")
 
@@ -915,9 +912,6 @@ class intacctSink(HotglueSink):
         key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
         payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
 
-        fetch_existing_entity_callback = None
-        format_existing_entity_fallback_response = None
-
         if order:
             # when updating the record we need to remove some fields from the payload
             fields_remove = ["vendorid", "transactiontype", "documentno"]
@@ -935,17 +929,9 @@ class intacctSink(HotglueSink):
             data = {"update_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
         else:
             data = {"create_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
-            if payload.get("RECORDNO"):
-                fetch_existing_entity_callback = lambda: self.fetch_existing_po(payload.get("RECORDNO"))
-                format_existing_entity_fallback_response = lambda resp: {"status": "success"}
 
         try:
-            result = self.client.format_and_send_request(
-                data,
-                use_payload=True,
-                fetch_existing_entity_callback=fetch_existing_entity_callback,
-                format_existing_entity_fallback_response=format_existing_entity_fallback_response
-            )
+            result = self.client.format_and_send_request(data, use_payload=True)
 
             if order: 
                 # Upsert
