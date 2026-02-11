@@ -8,6 +8,7 @@ import uuid
 from typing import Dict, List, Union
 from urllib.parse import unquote
 import xml
+import time
 
 import requests
 import singer
@@ -335,7 +336,13 @@ class SageIntacctSDK:
         factor=3,
     )
     @singer.utils.ratelimit(10, 1)
-    def format_and_send_request(self, data: Dict, use_payload=False) -> Union[List, Dict]:
+    def format_and_send_request(
+        self,
+        data: Dict,
+        use_payload=False,
+        fetch_existing_entity_callback=None,
+        format_existing_entity_fallback_response=None
+    ) -> Union[List, Dict]:
         """
         Format data accordingly to convert them to xml.
 
@@ -382,7 +389,18 @@ class SageIntacctSDK:
             }
         }
         with singer.metrics.http_request_timer(endpoint=object_type):
-            response = self._post_request(dict_body, self.__api_url)
+            try:
+                response = self._post_request(dict_body, self.__api_url)
+            except Exception as e:
+                if fetch_existing_entity_callback and format_existing_entity_fallback_response:
+                    # wait a little, intacct might still be processing the request
+                    time.sleep(60)
+                    existing_entity = fetch_existing_entity_callback()
+                    if existing_entity:
+                        return format_existing_entity_fallback_response(existing_entity)
+                
+                raise e
+
         return response["result"]
 
     def get_entity(self, *, object_type: str, fields: List[str], filter={}, docparid=None) -> List[Dict]:
