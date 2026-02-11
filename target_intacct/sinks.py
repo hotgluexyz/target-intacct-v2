@@ -382,8 +382,11 @@ class intacctSink(HotglueSink):
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
+                except Exception as e:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due invoice failed while being created: {e}")
             raise Exception(e)
 
     def bills_upload(self, record):
@@ -536,8 +539,11 @@ class intacctSink(HotglueSink):
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
+                except Exception as e:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due bill failed while being created: {e}")
             raise Exception(e)
 
     def journal_entries_upload(self, record):
@@ -915,8 +921,11 @@ class intacctSink(HotglueSink):
             # if purchase order is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
+                except Exception as e:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due purchase order failed while being created: {e}")
             raise Exception(e)
 
     def get_banks(self):
