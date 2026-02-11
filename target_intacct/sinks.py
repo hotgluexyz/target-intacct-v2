@@ -243,6 +243,9 @@ class intacctSink(HotglueSink):
             return employee["EMPLOYEEID"]
         raise Exception(f"Employee with recordno {recordno} not found.")
 
+    def fetch_existing_pi(self, record_id):
+        return self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": record_id}}})
+
     def purchase_invoices_upload(self, record):
         # Format data
         mapping = UnifiedMapping()
@@ -260,7 +263,7 @@ class intacctSink(HotglueSink):
                     f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
                 )
             # check if record exists
-            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
+            bill = self.fetch_existing_pi(payload.get("RECORDID"))
         
         # Map action
         action = payload.get("STATE")
@@ -368,14 +371,24 @@ class intacctSink(HotglueSink):
         if supdoc_id:
             payload["SUPDOCID"] = supdoc_id
 
+        fetch_existing_entity_callback = None
+        format_existing_entity_fallback_response = None
+
         if bill:
             payload.update(bill)
             data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+            if payload.get("RECORDID"):
+                fetch_existing_entity_callback = lambda: self.fetch_existing_pi(payload.get("RECORDID"))
+                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}}
 
         try:
-            response = self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(
+                data,
+                fetch_existing_entity_callback=fetch_existing_entity_callback,
+                format_existing_entity_fallback_response=format_existing_entity_fallback_response
+            )
             record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
             return record_number, True, {}
         except Exception as e:
@@ -388,6 +401,9 @@ class intacctSink(HotglueSink):
                 except Exception as e:
                     self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due invoice failed while being created: {e}")
             raise Exception(e)
+
+    def fetch_existing_bill(self, record_id):
+        return self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": record_id}}})
 
     def bills_upload(self, record):
         # Format data
@@ -405,7 +421,7 @@ class intacctSink(HotglueSink):
                     f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
                 )
             # check if record exists
-            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
+            bill = self.fetch_existing_bill(payload.get("RECORDID"))
         
         # Map action
         action = payload.get("STATE")
@@ -525,14 +541,24 @@ class intacctSink(HotglueSink):
         if supdoc_id:
             payload["SUPDOCID"] = supdoc_id
 
+        fetch_existing_entity_callback = None
+        format_existing_entity_fallback_response = None
+
         if bill:
             payload.update(bill)
             data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+            if payload.get("RECORDID"):
+                fetch_existing_entity_callback = lambda: self.fetch_existing_bill(payload.get("RECORDID"))
+                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}}
 
         try:
-            response = self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(
+                data,
+                fetch_existing_entity_callback=fetch_existing_entity_callback,
+                format_existing_entity_fallback_response=format_existing_entity_fallback_response
+            )
             record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
             return record_number, response.get("status") == "success", {}
         except Exception as e:
@@ -759,6 +785,8 @@ class intacctSink(HotglueSink):
         key = response.get("key")
         return key, response.get("status") == "success", {}
 
+    def fetch_existing_po(self, record_no):
+        return self.client.get_entity(object_type="purchase_orders", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDNO","value": record_no}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
 
     def purchase_orders_upload(self, record):
         # Format data
@@ -776,7 +804,7 @@ class intacctSink(HotglueSink):
         if payload.get("RECORDNO"):
             # check if record exists
             recordno = payload.pop("RECORDNO")
-            order = self.client.get_entity(object_type="purchase_orders", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDNO","value": recordno}}, "select": {"field": ["RECORDNO", "DOCNO"]}}, docparid="Purchase Order")
+            order = self.fetch_existing_po(recordno)
             if order:
                 order_lines = self.client.get_entity(object_type="purchase_orders_entry", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"DOCHDRNO","value": recordno}}, "pagesize": "2000"}, docparid="Purchase Order")
 
@@ -887,6 +915,9 @@ class intacctSink(HotglueSink):
         key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
         payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
 
+        fetch_existing_entity_callback = None
+        format_existing_entity_fallback_response = None
+
         if order:
             # when updating the record we need to remove some fields from the payload
             fields_remove = ["vendorid", "transactiontype", "documentno"]
@@ -904,9 +935,17 @@ class intacctSink(HotglueSink):
             data = {"update_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
         else:
             data = {"create_potransaction": {"object": "PODOCUMENT", "PODOCUMENT": payload}}
+            if payload.get("RECORDNO"):
+                fetch_existing_entity_callback = lambda: self.fetch_existing_po(payload.get("RECORDNO"))
+                format_existing_entity_fallback_response = lambda resp: {"status": "success"}
 
         try:
-            result = self.client.format_and_send_request(data, use_payload=True)
+            result = self.client.format_and_send_request(
+                data,
+                use_payload=True,
+                fetch_existing_entity_callback=fetch_existing_entity_callback,
+                format_existing_entity_fallback_response=format_existing_entity_fallback_response
+            )
 
             if order: 
                 # Upsert
