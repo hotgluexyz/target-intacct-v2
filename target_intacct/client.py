@@ -345,7 +345,7 @@ class SageIntacctSDK:
         Returns:
             A response from the _post_request (dict).
         """
-        _data = data.copy()
+        _data = copy.deepcopy(data)
         key = next(iter(_data))
         try:
             object_type = _data[key]["object"]
