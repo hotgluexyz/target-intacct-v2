@@ -261,11 +261,6 @@ class intacctSink(HotglueSink):
                 )
             # check if record exists
             bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
-
-        #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["SUPDOCID"] = supdoc_id
         
         # Map action
         action = payload.get("STATE")
@@ -368,6 +363,11 @@ class intacctSink(HotglueSink):
         else:
             payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
+
         if bill:
             payload.update(bill)
             data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
@@ -403,11 +403,6 @@ class intacctSink(HotglueSink):
                 )
             # check if record exists
             bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
-
-        #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["SUPDOCID"] = supdoc_id
         
         # Map action
         action = payload.get("STATE")
@@ -521,6 +516,11 @@ class intacctSink(HotglueSink):
                 payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
         else:
             payload["WHENCREATED"] = datetime.now().strftime("%Y-%m-%d")
+
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
 
         if bill:
             payload.update(bill)
@@ -799,19 +799,11 @@ class intacctSink(HotglueSink):
                 "day": payload.get("datedue").split("-")[2],
             }
 
-         #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["supdocid"] = supdoc_id
-
         if payload.get("basecurr"):
             payload["currency"] = payload["basecurr"]
         payload["returnto"] = {"contactname": None}
         payload["payto"] = {"contactname": None}
         payload["exchratetype"] = "Intacct Daily Rate"
-
-        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "supdocid", "basecurr", "currency", "exchratetype", "potransitems"]
-        payload = UnifiedMapping().order_dicts(payload, key_order)
 
         items = payload.get("potransitems").get("potransitem", [])
         for item in items:
@@ -878,8 +870,13 @@ class intacctSink(HotglueSink):
                     "error": f"ERROR: Product {item.get('itemid')} or {item.get('itemname')} does not exist. Did you mean any of these: {list(self.items.values())}?"
                 }
 
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["supdocid"] = supdoc_id
 
-
+        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "supdocid", "basecurr", "currency", "exchratetype", "potransitems"]
+        payload = UnifiedMapping().order_dicts(payload, key_order)
 
         key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
         payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
