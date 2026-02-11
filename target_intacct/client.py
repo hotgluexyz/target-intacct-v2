@@ -8,6 +8,7 @@ import uuid
 from typing import Dict, List, Union
 from urllib.parse import unquote
 import xml
+import time
 
 import requests
 import singer
@@ -175,7 +176,7 @@ class SageIntacctSDK:
         body = xmltodict.unparse(dict_body).encode('utf-8')
         try:
             # 60 seconds timeout to overcome hanging requests
-            response = requests.post(api_url, headers=api_headers, data=body, timeout=60)
+            response = requests.post(api_url, headers=api_headers, data=body, timeout=300)
         except requests.exceptions.Timeout as e:
             # Raise a TemporaryServerError if the request times out and we should retry
             raise TemporaryServerError(f"Request timed out: {e}")
@@ -335,7 +336,13 @@ class SageIntacctSDK:
         factor=3,
     )
     @singer.utils.ratelimit(10, 1)
-    def format_and_send_request(self, data: Dict, use_payload=False) -> Union[List, Dict]:
+    def format_and_send_request(
+        self,
+        data: Dict,
+        use_payload=False,
+        fetch_existing_entity_callback=None,
+        format_existing_entity_fallback_response=None
+    ) -> Union[List, Dict]:
         """
         Format data accordingly to convert them to xml.
 
@@ -345,7 +352,7 @@ class SageIntacctSDK:
         Returns:
             A response from the _post_request (dict).
         """
-        _data = data.copy()
+        _data = copy.deepcopy(data)
         key = next(iter(_data))
         try:
             object_type = _data[key]["object"]
@@ -382,7 +389,25 @@ class SageIntacctSDK:
             }
         }
         with singer.metrics.http_request_timer(endpoint=object_type):
-            response = self._post_request(dict_body, self.__api_url)
+            try:
+                response = self._post_request(dict_body, self.__api_url)
+            except (
+                ConnectionError,
+                ConnectionResetError,
+                requests.exceptions.ConnectionError,
+                requests.exceptions.RequestException,
+                InternalServerError,
+                TemporaryServerError
+            ) as e:
+                if fetch_existing_entity_callback and format_existing_entity_fallback_response:
+                    # wait a little, intacct might still be processing the request
+                    time.sleep(60)
+                    existing_entity = fetch_existing_entity_callback()
+                    if existing_entity:
+                        return format_existing_entity_fallback_response(existing_entity)
+                
+                raise e
+
         return response["result"]
 
     def get_entity(self, *, object_type: str, fields: List[str], filter={}, docparid=None) -> List[Dict]:

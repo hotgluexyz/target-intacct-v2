@@ -243,6 +243,9 @@ class intacctSink(HotglueSink):
             return employee["EMPLOYEEID"]
         raise Exception(f"Employee with recordno {recordno} not found.")
 
+    def fetch_existing_pi(self, record_id):
+        return self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": record_id}}})
+
     def purchase_invoices_upload(self, record):
         # Format data
         mapping = UnifiedMapping()
@@ -260,12 +263,7 @@ class intacctSink(HotglueSink):
                     f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
                 )
             # check if record exists
-            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO", "STATE", "VENDORNAME", "BASECURR"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
-
-        #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["SUPDOCID"] = supdoc_id
+            bill = self.fetch_existing_pi(payload.get("RECORDID"))
         
         # Map action
         action = payload.get("STATE")
@@ -368,23 +366,44 @@ class intacctSink(HotglueSink):
         else:
             payload["WHENCREATED"] = payload["WHENCREATED"].split("T")[0]
 
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
+
+        fetch_existing_entity_callback = None
+        format_existing_entity_fallback_response = None
+
         if bill:
             payload.update(bill)
             data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+            if payload.get("RECORDID"):
+                fetch_existing_entity_callback = lambda: self.fetch_existing_pi(payload.get("RECORDID"))
+                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}}
 
         try:
-            response = self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(
+                data,
+                fetch_existing_entity_callback=fetch_existing_entity_callback,
+                format_existing_entity_fallback_response=format_existing_entity_fallback_response
+            )
             record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
             return record_number, True, {}
         except Exception as e:
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due invoice failed while being created.")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due invoice failed while being created")
             raise Exception(e)
+
+    def fetch_existing_bill(self, record_id):
+        return self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": record_id}}})
 
     def bills_upload(self, record):
         # Format data
@@ -402,12 +421,7 @@ class intacctSink(HotglueSink):
                     f"RECORDID '{payload.get('RECORDID')}' contains one or more invalid characters '&,<,>,#,?'. Please provide a RECORDID that does not include these characters."
                 )
             # check if record exists
-            bill = self.client.get_entity(object_type="accounts_payable_bills", fields=["RECORDNO"], filter={"filter": {"equalto":{"field":"RECORDID","value": payload.get("RECORDID")}}})
-
-        #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["SUPDOCID"] = supdoc_id
+            bill = self.fetch_existing_bill(payload.get("RECORDID"))
         
         # Map action
         action = payload.get("STATE")
@@ -522,22 +536,40 @@ class intacctSink(HotglueSink):
         else:
             payload["WHENCREATED"] = datetime.now().strftime("%Y-%m-%d")
 
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["SUPDOCID"] = supdoc_id
+
+        fetch_existing_entity_callback = None
+        format_existing_entity_fallback_response = None
+
         if bill:
             payload.update(bill)
             data = {"update": {"object": "accounts_payable_bills", "APBILL": payload}}
         else:
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
+            if payload.get("RECORDID"):
+                fetch_existing_entity_callback = lambda: self.fetch_existing_bill(payload.get("RECORDID"))
+                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}, "status": "success"}
 
         try:
-            response = self.client.format_and_send_request(data)
+            response = self.client.format_and_send_request(
+                data,
+                fetch_existing_entity_callback=fetch_existing_entity_callback,
+                format_existing_entity_fallback_response=format_existing_entity_fallback_response
+            )
             record_number = response.get("data", {}).get("apbill", {}).get("RECORDNO")
             return record_number, response.get("status") == "success", {}
         except Exception as e:
             # if invoice is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due bill failed while being created.")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due bill failed while being created")
             raise Exception(e)
 
     def journal_entries_upload(self, record):
@@ -753,7 +785,6 @@ class intacctSink(HotglueSink):
         key = response.get("key")
         return key, response.get("status") == "success", {}
 
-
     def purchase_orders_upload(self, record):
         # Format data
         mapping = UnifiedMapping()
@@ -799,19 +830,11 @@ class intacctSink(HotglueSink):
                 "day": payload.get("datedue").split("-")[2],
             }
 
-         #send attachments
-        supdoc_id = self.post_attachments(payload, record)
-        if supdoc_id:
-            payload["supdocid"] = supdoc_id
-
         if payload.get("basecurr"):
             payload["currency"] = payload["basecurr"]
         payload["returnto"] = {"contactname": None}
         payload["payto"] = {"contactname": None}
         payload["exchratetype"] = "Intacct Daily Rate"
-
-        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "supdocid", "basecurr", "currency", "exchratetype", "potransitems"]
-        payload = UnifiedMapping().order_dicts(payload, key_order)
 
         items = payload.get("potransitems").get("potransitem", [])
         for item in items:
@@ -878,8 +901,13 @@ class intacctSink(HotglueSink):
                     "error": f"ERROR: Product {item.get('itemid')} or {item.get('itemname')} does not exist. Did you mean any of these: {list(self.items.values())}?"
                 }
 
+        #send attachments
+        supdoc_id = self.post_attachments(payload, record)
+        if supdoc_id:
+            payload["supdocid"] = supdoc_id
 
-
+        key_order = ["transactiontype", "datecreated", "vendorid", "documentno", "referenceno", "termname", "datedue", "message", "returnto", "payto", "supdocid", "basecurr", "currency", "exchratetype", "potransitems"]
+        payload = UnifiedMapping().order_dicts(payload, key_order)
 
         key_order = ["itemid", "quantity", "unit", "price", "tax", "locationid", "departmentid", "memo", "projectid", "employeeid", "classid"]
         payload["potransitems"]["potransitem"] = [UnifiedMapping().order_dicts(item, key_order) for item in items]
@@ -918,8 +946,11 @@ class intacctSink(HotglueSink):
             # if purchase order is new and attachments were posted, delete attachments
             if supdoc_id and list(data.keys())[0] == "create": 
                 del_supdoc = {"delete_supdoc": {"@key": supdoc_id, "object": "supdoc"}}
-                self.client.format_and_send_request(del_supdoc)
-                self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
+                try:
+                    self.client.format_and_send_request(del_supdoc)
+                    self.logger.info(f"Supdoc '{supdoc_id}' deleted due purchase order failed while being created.")
+                except Exception:
+                    self.logger.exception(f"Error deleting supdoc '{supdoc_id}' due purchase order failed while being created")
             raise Exception(e)
 
     def get_banks(self):
