@@ -551,7 +551,7 @@ class intacctSink(HotglueSink):
             data = {"create": {"object": "accounts_payable_bills", "APBILL": payload}}
             if payload.get("RECORDID"):
                 fetch_existing_entity_callback = lambda: self.fetch_existing_bill(payload.get("RECORDID"))
-                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}}
+                format_existing_entity_fallback_response = lambda resp: {"data": {"apbill": resp}, "status": "success"}
 
         try:
             response = self.client.format_and_send_request(
