@@ -48,3 +48,6 @@ class TemporaryServerError(SageIntacctSDKError):
 
 class InvalidXMLResponseError(SageIntacctSDKError):
     """Invalid XML response from the API."""
+
+class UnknownTemporaryError (SageIntacctSDKError):
+    """Temporary errors that should be retried, like 200 with status failure."""

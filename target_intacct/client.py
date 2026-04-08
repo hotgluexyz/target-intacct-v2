@@ -26,7 +26,8 @@ from target_intacct.exceptions import (
     SageIntacctSDKError,
     WrongParamsError,
     TemporaryServerError,
-    InvalidXMLResponseError
+    InvalidXMLResponseError,
+    UnknownTemporaryError
 )
 
 from .const import GET_BY_DATE_FIELD, INTACCT_OBJECTS
@@ -247,6 +248,10 @@ class SageIntacctSDK:
 
             if api_response["result"]["status"] == "success":
                 return api_response
+            
+            raise UnknownTemporaryError(
+                "Temporary error. Raw response text:" + response.text
+            )
 
         if response.status_code == 400:
             raise WrongParamsError(
@@ -330,7 +335,8 @@ class SageIntacctSDK:
             requests.exceptions.ConnectionError,
             requests.exceptions.RequestException,
             InternalServerError,
-            TemporaryServerError
+            TemporaryServerError,
+            UnknownTemporaryError
         ),
         max_tries=8,
         factor=3,
