@@ -94,7 +94,8 @@ class SageIntacctSDK:
             requests.exceptions.ConnectionError,
             requests.exceptions.RequestException,
             InternalServerError,
-            TemporaryServerError
+            TemporaryServerError,
+            UnknownTemporaryError
         ),
         max_tries=8,
         factor=3,
