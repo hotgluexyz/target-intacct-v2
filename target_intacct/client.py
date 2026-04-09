@@ -404,7 +404,8 @@ class SageIntacctSDK:
                 requests.exceptions.ConnectionError,
                 requests.exceptions.RequestException,
                 InternalServerError,
-                TemporaryServerError
+                TemporaryServerError,
+                UnknownTemporaryError
             ) as e:
                 if fetch_existing_entity_callback and format_existing_entity_fallback_response:
                     # wait a little, intacct might still be processing the request
