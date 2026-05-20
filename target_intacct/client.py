@@ -250,6 +250,14 @@ class SageIntacctSDK:
             if api_response["result"]["status"] == "success":
                 return api_response
             
+            if api_response["result"]["status"] == "failure":
+                exception_msg = self.decode_support_id(
+                    api_response["result"]["errormessage"]
+                )
+                raise WrongParamsError(
+                    "Some of the parameters are wrong. Raw response text:" + response.text, exception_msg
+                )
+            
             raise UnknownTemporaryError(
                 "Temporary error. Raw response text:" + response.text
             )
