@@ -111,6 +111,19 @@ class intacctSink(RecordSink):
             self.departments = self.dictify(departments, "TITLE", "DEPARTMENTID")
         return self.departments
 
+    def lookup_department_id(self, name):
+        """Resolve a department TITLE to DEPARTMENTID, or raise an informative error."""
+        self.get_departments()
+        department_id = self.departments.get(name)
+        if department_id is None:
+            raise Exception(
+                f"ERROR: Department '{name}' not found. "
+                "When departmentId is not provided, department/departmentName must match an "
+                "Intacct department TITLE. Provide a valid departmentId, or a departmentName "
+                "that matches a department title in Intacct."
+            )
+        return department_id
+
     def get_items(self):
         if self.items is None:
             # Lookup for items
@@ -284,12 +297,11 @@ class intacctSink(RecordSink):
                 item["ITEMID"] = self.items.get(payload.get("ITEMNAME"))
                 item.pop("ITEMNAME")
 
-            self.get_departments()
             if item.get("DEPARTMENT"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENT")]
+                item["DEPARTMENTID"] = self.lookup_department_id(item.get("DEPARTMENT"))
                 item.pop("DEPARTMENT")
             elif item.get("DEPARTMENTNAME"):
-                item["DEPARTMENTID"] = self.departments[item.get("DEPARTMENTNAME")]
+                item["DEPARTMENTID"] = self.lookup_department_id(item.get("DEPARTMENTNAME"))
                 item.pop("DEPARTMENTNAME")
 
         payload.pop("LOCATIONNAME", None)
@@ -459,13 +471,12 @@ class intacctSink(RecordSink):
                 value = 1 if item.get("TR_TYPE").lower() == "debit" else -1
                 item["TR_TYPE"] = value
 
-            self.get_departments()
             if not item.get("DEPARTMENTID"):
                 if item.get("DEPARTMENT"):
-                    item["DEPARTMENT"] = self.departments[item.get("DEPARTMENT")]
+                    item["DEPARTMENT"] = self.lookup_department_id(item.get("DEPARTMENT"))
                     item.pop("DEPARTMENT")
                 if item.get("DEPARTMENTNAME"):
-                    item["DEPARTMENT"] = self.departments[item.get("DEPARTMENTNAME")]
+                    item["DEPARTMENT"] = self.lookup_department_id(item.get("DEPARTMENTNAME"))
                     item.pop("DEPARTMENTNAME")
             elif item.get("DEPARTMENTID"):
                 item["DEPARTMENT"] = item.get("DEPARTMENTID")
